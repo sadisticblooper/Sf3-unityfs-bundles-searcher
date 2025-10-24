@@ -98,28 +98,40 @@ class AnimationTool {
     }
 
     async loadPythonModules() {
-        // Load modules in correct dependency order
-        const modules = [
-            'frame_modifiers.py',  // Load first - no dependencies
-            'user_pref.py',        // Load second - no dependencies  
-            'animation_decrypter_2.py', // Load third - depends on frame_modifiers
-            'runner_web.py'        // Load last - depends on animation_decrypter_2
-        ];
-        
-        for (const module of modules) {
-            try {
-                // Use relative path for Vercel
-                const response = await fetch(`./python_core/${module}`);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                
-                const code = await response.text();
-                pyodide.runPython(code);
-                this.log(`✅ Loaded: ${module}`);
-            } catch (error) {
-                this.log(`❌ Failed to load ${module}: ${error}`);
-            }
+    // Load all Python code into a single module context
+    const modules = [
+        'frame_modifiers.py',
+        'user_pref.py', 
+        'animation_decrypter_2.py',
+        'runner_web.py'
+    ];
+    
+    let allPythonCode = '';
+    
+    // First, concatenate all Python code
+    for (const module of modules) {
+        try {
+            const response = await fetch(`./python_core/${module}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const code = await response.text();
+            allPythonCode += `\n# --- ${module} ---\n` + code + `\n`;
+            this.log(`✅ Loaded: ${module}`);
+        } catch (error) {
+            this.log(`❌ Failed to load ${module}: ${error}`);
+            throw error; // Stop if any module fails
         }
     }
+    
+    // Execute all Python code at once
+    try {
+        pyodide.runPython(allPythonCode);
+        this.log("✅ All Python modules executed successfully");
+    } catch (error) {
+        this.log(`❌ Failed to execute Python code: ${error}`);
+        throw error;
+    }
+}
 
     updateParametersUI() {
         const operation = elements.operationSelect.value;
