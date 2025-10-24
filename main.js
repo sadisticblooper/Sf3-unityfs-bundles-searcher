@@ -117,7 +117,7 @@ web_logger("Python environment ready")
             
             const modules = [
                 'frame_modifiers.py',
-                'user_pref.py',
+                'user_pref.py', 
                 'animation_decrypter_2.py',
                 'runner_web.py'
             ];
@@ -147,6 +147,7 @@ web_logger("Python environment ready")
                 }
             }
             
+            // FIXED: Create a proper web version that returns the output data directly
             const operationRunnerCode = `
 def run_web_operation(cli_args):
     try:
@@ -156,39 +157,76 @@ def run_web_operation(cli_args):
         
         web_logger(f"Running operation: {args_dict.get('selected_operation', 'UNKNOWN')}")
         
-        # Debug: List ALL files before operation
-        import os
-        web_logger("=== DEBUG FILE LISTING ===")
-        for root, dirs, files in os.walk('.'):
-            for file in files:
-                web_logger(f"Found: {os.path.join(root, file)}")
-        web_logger("=== END DEBUG ===")
-        
         if 'main' in globals():
-            # Run the main function directly
-            main(cli_args=args_dict, logger=web_logger)
-            web_logger("Main function completed")
+            # Monkey patch the file writing to capture output data
+            original_write = None
+            output_data = None
+            output_filename = None
             
-            # Check for output files
-            output_files = []
-            for root, dirs, files in os.walk('.'):
-                for file in files:
-                    if file.endswith('.bytes') or file.endswith('.txt') or file.endswith('.csv'):
-                        # Skip input files
-                        if (args_dict.get('file_path') and file == args_dict.get('file_path')) or \
-                           (args_dict.get('file1') and file == args_dict.get('file1')) or \
-                           (args_dict.get('file2') and file == args_dict.get('file2')):
-                            continue
-                        output_files.append(file)
+            def capture_write(filepath, data):
+                nonlocal output_data, output_filename
+                output_data = data
+                output_filename = filepath
+                web_logger(f"Captured output: {filepath} ({len(data)} bytes)")
+                return len(data)
             
-            web_logger(f"Potential output files: {output_files}")
+            # Replace file operations
+            import builtins
+            original_open = builtins.open
             
-            if output_files:
-                # Return the first output file
-                return output_files[0]
-            else:
-                web_logger("No output files found")
-                return None
+            def capture_open(filepath, mode='r', *args, **kwargs):
+                if 'w' in mode or 'x' in mode or 'a' in mode:
+                    web_logger(f"File write attempted: {filepath}")
+                    # Return a mock file object that captures data
+                    class MockFile:
+                        def __init__(self):
+                            self.data = b''
+                            self.closed = False
+                        
+                        def write(self, data):
+                            if isinstance(data, str):
+                                data = data.encode('utf-8')
+                            self.data += data
+                            return len(data)
+                        
+                        def close(self):
+                            nonlocal output_data, output_filename
+                            output_data = self.data
+                            output_filename = filepath
+                            web_logger(f"Captured output file: {filepath} ({len(self.data)} bytes)")
+                            self.closed = True
+                        
+                        def __enter__(self):
+                            return self
+                        
+                        def __exit__(self, *args):
+                            self.close()
+                    
+                    return MockFile()
+                else:
+                    # For reading, use the original
+                    return original_open(filepath, mode, *args, **kwargs)
+            
+            builtins.open = capture_open
+            
+            try:
+                # Run the main function
+                main(cli_args=args_dict, logger=web_logger)
+                web_logger("Main function completed")
+                
+                if output_data and output_filename:
+                    # Write the captured data to VFS
+                    import pyodide
+                    pyodide.FS.writeFile(output_filename, output_data)
+                    web_logger(f"Output written to VFS: {output_filename}")
+                    return output_filename
+                else:
+                    web_logger("No output data captured")
+                    return None
+                    
+            finally:
+                # Restore original functions
+                builtins.open = original_open
                 
         else:
             raise Exception("main function not found")
@@ -418,7 +456,6 @@ def run_web_operation(cli_args):
         try {
             const cliArgs = await this.gatherCLIArguments();
             
-            // Upload files with better error handling
             await this.uploadFilesToVFS();
 
             this.log(`Starting ${operation} operation...`);
@@ -511,7 +548,6 @@ def run_web_operation(cli_args):
             if (mainFile) {
                 try {
                     const data = await this.readFileAsArrayBuffer(mainFile);
-                    // Write to current working directory
                     pyodide.FS.writeFile(`./${mainFile.name}`, new Uint8Array(data));
                     this.log(`Uploaded: ${mainFile.name}`);
                     
