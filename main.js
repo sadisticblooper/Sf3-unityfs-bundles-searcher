@@ -98,28 +98,33 @@ class AnimationTool {
     }
 
     async loadPythonModules() {
-    // Load all Python code into a single module context
     const modules = [
-        'frame_modifiers.py',
-        'user_pref.py', 
-        'animation_decrypter_2.py',
-        'runner_web.py'
+        { name: 'frame_modifiers.py', hasImports: false },
+        { name: 'user_pref.py', hasImports: false },
+        { name: 'animation_decrypter_2.py', hasImports: true },
+        { name: 'runner_web.py', hasImports: true }
     ];
     
     let allPythonCode = '';
     
-    // First, concatenate all Python code
     for (const module of modules) {
         try {
-            const response = await fetch(`./python_core/${module}`);
+            const response = await fetch(`./python_core/${module.name}`);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
-            const code = await response.text();
-            allPythonCode += `\n# --- ${module} ---\n` + code + `\n`;
-            this.log(`✅ Loaded: ${module}`);
+            let code = await response.text();
+            
+            // Remove import statements for modules we're loading
+            if (module.hasImports) {
+                code = code.replace(/from frame_modifiers import[^\n]+\n/g, '');
+                code = code.replace(/from animation_decrypter_2 import[^\n]+\n/g, '');
+                code = code.replace(/from user_pref import[^\n]+\n/g, '');
+            }
+            
+            allPythonCode += `\n# --- ${module.name} ---\n` + code + `\n`;
+            this.log(`✅ Loaded: ${module.name}`);
         } catch (error) {
-            this.log(`❌ Failed to load ${module}: ${error}`);
-            throw error; // Stop if any module fails
+            this.log(`❌ Failed to load ${module.name}: ${error}`);
         }
     }
     
@@ -129,7 +134,6 @@ class AnimationTool {
         this.log("✅ All Python modules executed successfully");
     } catch (error) {
         this.log(`❌ Failed to execute Python code: ${error}`);
-        throw error;
     }
 }
 
