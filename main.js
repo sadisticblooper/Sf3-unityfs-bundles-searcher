@@ -73,12 +73,9 @@ class AnimationTool {
             pyodide = await loadPyodide();
             this.log("Pyodide loaded");
 
-            // Load numpy FIRST using loadPackage (more reliable)
-            this.log("Loading numpy...");
             await pyodide.loadPackage("numpy");
             this.log("NumPy installed");
 
-            // Load Python modules
             await this.loadPythonModules();
             
             elements.runButton.textContent = "Run Operation";
@@ -97,7 +94,6 @@ class AnimationTool {
         try {
             this.log("Loading Python modules...");
             
-            // First, verify numpy is available
             const numpyCheck = `
 try:
     import numpy as np
@@ -133,7 +129,6 @@ web_logger("Python environment ready")
                     
                     let code = await response.text();
                     
-                    // Remove import statements that cause issues
                     if (module === 'animation_decrypter_2.py') {
                         code = code.replace(/from frame_modifiers import \([^)]+\)/, '');
                     }
@@ -159,89 +154,57 @@ def run_web_operation(cli_args):
         for key in cli_args:
             args_dict[key] = cli_args[key]
         
-        # Get input filename to exclude it from output search
-        input_files = []
-        if 'file_path' in args_dict and args_dict['file_path']:
-            input_files.append(args_dict['file_path'])
-        if 'file1' in args_dict and args_dict['file1']:
-            input_files.append(args_dict['file1'])
-        if 'file2' in args_dict and args_dict['file2']:
-            input_files.append(args_dict['file2'])
-        
-        web_logger(f"Input files: {input_files}")
+        web_logger(f"Running operation: {args_dict.get('selected_operation', 'UNKNOWN')}")
+        web_logger(f"Input file: {args_dict.get('file_path', 'None')}")
         
         if 'main' in globals():
-            # Get files before operation
+            # List all files before operation
             import os
-            files_before = set()
-            for file in os.listdir('.'):
-                if file.endswith('.bytes') or file.endswith('.txt'):
-                    files_before.add(file)
+            files_before = set(os.listdir('.'))
+            web_logger(f"Files before: {list(files_before)}")
             
-            web_logger(f"Files before operation: {files_before}")
+            # Run the main function directly
+            try:
+                main(cli_args=args_dict, logger=web_logger)
+                web_logger("Main function completed")
+            except Exception as e:
+                web_logger(f"Main function error: {e}")
+                raise
             
-            # Run the operation
-            main(cli_args=args_dict, logger=web_logger)
+            # List all files after operation
+            files_after = set(os.listdir('.'))
+            web_logger(f"Files after: {list(files_after)}")
             
-            # Get files after operation and find new ones
-            files_after = set()
-            for file in os.listdir('.'):
-                if file.endswith('.bytes') or file.endswith('.txt'):
-                    files_after.add(file)
-            
-            web_logger(f"Files after operation: {files_after}")
-            
-            # Find new files that weren't there before
+            # Find new files
             new_files = files_after - files_before
-            web_logger(f"New files created: {new_files}")
+            web_logger(f"New files: {list(new_files)}")
             
-            # Also look for files with operation prefixes
-            operation = args_dict.get('selected_operation', '')
-            prefixed_files = []
-            for file in files_after:
-                if (file.startswith(operation + '_') or 
-                    file.startswith('SHORTEN_') or 
-                    file.startswith('LENGTHEN_') or
-                    file.startswith('DASH_') or
-                    file.startswith('BIRTH_LOC_') or
-                    file.startswith('TRIMMER_') or
-                    file.startswith('AXIS_ADDER_') or
-                    file.startswith('AXIS_SCALER_') or
-                    file.startswith('SPLICER_') or
-                    file.startswith('X_DOUBLE_') or
-                    file.startswith('EXTRACTED_')):
-                    prefixed_files.append(file)
+            # Filter for output files (not input files)
+            input_files = []
+            if 'file_path' in args_dict and args_dict['file_path']:
+                input_files.append(args_dict['file_path'])
+            if 'file1' in args_dict and args_dict['file1']:
+                input_files.append(args_dict['file1'])
+            if 'file2' in args_dict and args_dict['file2']:
+                input_files.append(args_dict['file2'])
             
-            web_logger(f"Files with operation prefixes: {prefixed_files}")
-            
-            # Return the newest file (by modification time)
-            output_files = list(new_files) + prefixed_files
-            
-            # Remove input files from output candidates
-            output_files = [f for f in output_files if f not in input_files]
+            output_files = [f for f in new_files if f not in input_files and (f.endswith('.bytes') or f.endswith('.txt') or f.endswith('.csv'))]
+            web_logger(f"Output files: {output_files}")
             
             if output_files:
-                # Sort by modification time to get the newest
-                output_files_with_time = []
-                for file in output_files:
-                    try:
-                        mtime = os.path.getmtime(file)
-                        output_files_with_time.append((file, mtime))
-                    except:
-                        output_files_with_time.append((file, 0))
-                
-                output_files_with_time.sort(key=lambda x: x[1], reverse=True)
-                output_file = output_files_with_time[0][0]
-                web_logger(f"Selected output file: {output_file}")
+                # Return the first output file
+                output_file = output_files[0]
+                web_logger(f"Selected output: {output_file}")
                 return output_file
             else:
-                web_logger("No output file found")
+                web_logger("No output files found")
                 return None
+                
         else:
             raise Exception("main function not found")
             
     except Exception as e:
-        web_logger(f"Error: {str(e)}")
+        web_logger(f"Operation error: {str(e)}")
         import traceback
         web_logger(traceback.format_exc())
         raise e
@@ -483,38 +446,12 @@ def run_web_operation(cli_args):
             } else {
                 this.log("Operation completed but no output file was returned.");
                 
-                // Try to find and download any output files
+                // Debug: List all files in VFS
                 try {
                     const files = pyodide.FS.readdir('/');
-                    const inputFiles = [];
-                    if (cliArgs.file_path) inputFiles.push(cliArgs.file_path);
-                    if (cliArgs.file1) inputFiles.push(cliArgs.file1);
-                    if (cliArgs.file2) inputFiles.push(cliArgs.file2);
-                    
-                    const outputFiles = files.filter(f => 
-                        (f.endsWith('.bytes') || f.endsWith('.txt')) && 
-                        !inputFiles.includes(f) &&
-                        (f.startsWith(operation + '_') || 
-                         f.startsWith('SHORTEN_') || 
-                         f.startsWith('LENGTHEN_') ||
-                         f.startsWith('DASH_') ||
-                         f.startsWith('BIRTH_LOC_') ||
-                         f.startsWith('TRIMMER_') ||
-                         f.startsWith('AXIS_ADDER_') ||
-                         f.startsWith('AXIS_SCALER_') ||
-                         f.startsWith('SPLICER_') ||
-                         f.startsWith('X_DOUBLE_') ||
-                         f.startsWith('EXTRACTED_'))
-                    );
-                    
-                    if (outputFiles.length > 0) {
-                        this.log(`Found output files: ${outputFiles.join(', ')}`);
-                        outputFiles.forEach(file => this.downloadVFSFile(file));
-                    } else {
-                        this.log("No output files found with expected naming patterns.");
-                    }
+                    this.log(`All files in VFS: ${files.join(', ')}`);
                 } catch (error) {
-                    this.log(`Could not list output files: ${error.message}`);
+                    this.log(`Could not list VFS files: ${error.message}`);
                 }
             }
 
