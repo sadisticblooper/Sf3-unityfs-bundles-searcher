@@ -73,11 +73,12 @@ class AnimationTool {
             pyodide = await loadPyodide();
             this.log("Pyodide loaded");
 
-            await pyodide.loadPackage(['micropip']);
-            const micropip = pyodide.pyimport('micropip');
-            await micropip.install('numpy');
+            // Load numpy FIRST using loadPackage (more reliable)
+            this.log("Loading numpy...");
+            await pyodide.loadPackage("numpy");
             this.log("NumPy installed");
 
+            // Load Python modules
             await this.loadPythonModules();
             
             elements.runButton.textContent = "Run Operation";
@@ -96,12 +97,25 @@ class AnimationTool {
         try {
             this.log("Loading Python modules...");
             
+            // First, verify numpy is available
+            const numpyCheck = `
+try:
+    import numpy as np
+    print("NumPy successfully imported")
+except ImportError as e:
+    print(f"NumPy import failed: {e}")
+    raise
+`;
+            pyodide.runPython(numpyCheck);
+            
             const setupCode = `
 import sys
 import js
 
 def web_logger(message):
     js.console.log(f"PYTHON: {message}")
+
+web_logger("Python environment ready")
 `;
             pyodide.runPython(setupCode);
             
@@ -119,6 +133,7 @@ def web_logger(message):
                     
                     let code = await response.text();
                     
+                    // Remove import statements that cause issues
                     if (module === 'animation_decrypter_2.py') {
                         code = code.replace(/from frame_modifiers import \([^)]+\)/, '');
                     }
