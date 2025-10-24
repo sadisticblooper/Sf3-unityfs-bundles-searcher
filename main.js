@@ -159,19 +159,81 @@ def run_web_operation(cli_args):
         for key in cli_args:
             args_dict[key] = cli_args[key]
         
+        # Get input filename to exclude it from output search
+        input_files = []
+        if 'file_path' in args_dict and args_dict['file_path']:
+            input_files.append(args_dict['file_path'])
+        if 'file1' in args_dict and args_dict['file1']:
+            input_files.append(args_dict['file1'])
+        if 'file2' in args_dict and args_dict['file2']:
+            input_files.append(args_dict['file2'])
+        
+        web_logger(f"Input files: {input_files}")
+        
         if 'main' in globals():
-            main(cli_args=args_dict, logger=web_logger)
-            
+            # Get files before operation
             import os
-            files = []
+            files_before = set()
             for file in os.listdir('.'):
                 if file.endswith('.bytes') or file.endswith('.txt'):
-                    files.append(file)
+                    files_before.add(file)
             
-            web_logger(f"Found output files: {files}")
+            web_logger(f"Files before operation: {files_before}")
             
-            if files:
-                return files[0]
+            # Run the operation
+            main(cli_args=args_dict, logger=web_logger)
+            
+            # Get files after operation and find new ones
+            files_after = set()
+            for file in os.listdir('.'):
+                if file.endswith('.bytes') or file.endswith('.txt'):
+                    files_after.add(file)
+            
+            web_logger(f"Files after operation: {files_after}")
+            
+            # Find new files that weren't there before
+            new_files = files_after - files_before
+            web_logger(f"New files created: {new_files}")
+            
+            # Also look for files with operation prefixes
+            operation = args_dict.get('selected_operation', '')
+            prefixed_files = []
+            for file in files_after:
+                if (file.startswith(operation + '_') or 
+                    file.startswith('SHORTEN_') or 
+                    file.startswith('LENGTHEN_') or
+                    file.startswith('DASH_') or
+                    file.startswith('BIRTH_LOC_') or
+                    file.startswith('TRIMMER_') or
+                    file.startswith('AXIS_ADDER_') or
+                    file.startswith('AXIS_SCALER_') or
+                    file.startswith('SPLICER_') or
+                    file.startswith('X_DOUBLE_') or
+                    file.startswith('EXTRACTED_')):
+                    prefixed_files.append(file)
+            
+            web_logger(f"Files with operation prefixes: {prefixed_files}")
+            
+            # Return the newest file (by modification time)
+            output_files = list(new_files) + prefixed_files
+            
+            # Remove input files from output candidates
+            output_files = [f for f in output_files if f not in input_files]
+            
+            if output_files:
+                # Sort by modification time to get the newest
+                output_files_with_time = []
+                for file in output_files:
+                    try:
+                        mtime = os.path.getmtime(file)
+                        output_files_with_time.append((file, mtime))
+                    except:
+                        output_files_with_time.append((file, 0))
+                
+                output_files_with_time.sort(key=lambda x: x[1], reverse=True)
+                output_file = output_files_with_time[0][0]
+                web_logger(f"Selected output file: {output_file}")
+                return output_file
             else:
                 web_logger("No output file found")
                 return None
@@ -424,15 +486,32 @@ def run_web_operation(cli_args):
                 // Try to find and download any output files
                 try {
                     const files = pyodide.FS.readdir('/');
+                    const inputFiles = [];
+                    if (cliArgs.file_path) inputFiles.push(cliArgs.file_path);
+                    if (cliArgs.file1) inputFiles.push(cliArgs.file1);
+                    if (cliArgs.file2) inputFiles.push(cliArgs.file2);
+                    
                     const outputFiles = files.filter(f => 
                         (f.endsWith('.bytes') || f.endsWith('.txt')) && 
-                        !f.includes('inputFile') && 
-                        !f.includes('splicerFile')
+                        !inputFiles.includes(f) &&
+                        (f.startsWith(operation + '_') || 
+                         f.startsWith('SHORTEN_') || 
+                         f.startsWith('LENGTHEN_') ||
+                         f.startsWith('DASH_') ||
+                         f.startsWith('BIRTH_LOC_') ||
+                         f.startsWith('TRIMMER_') ||
+                         f.startsWith('AXIS_ADDER_') ||
+                         f.startsWith('AXIS_SCALER_') ||
+                         f.startsWith('SPLICER_') ||
+                         f.startsWith('X_DOUBLE_') ||
+                         f.startsWith('EXTRACTED_'))
                     );
                     
                     if (outputFiles.length > 0) {
                         this.log(`Found output files: ${outputFiles.join(', ')}`);
                         outputFiles.forEach(file => this.downloadVFSFile(file));
+                    } else {
+                        this.log("No output files found with expected naming patterns.");
                     }
                 } catch (error) {
                     this.log(`Could not list output files: ${error.message}`);
