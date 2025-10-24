@@ -148,17 +148,15 @@ def run_web_operation(cli_args):
             main(cli_args=args_dict, logger=web_logger)
             
             import os
-            import time
             files = []
             for file in os.listdir('.'):
-                if file.endswith('.bytes'):
-                    files.append((file, os.path.getmtime(file)))
+                if file.endswith('.bytes') or file.endswith('.txt'):
+                    files.append(file)
+            
+            web_logger(f"Found output files: {files}")
             
             if files:
-                files.sort(key=lambda x: x[1], reverse=True)
-                output_file = files[0][0]
-                web_logger(f"Output file: {output_file}")
-                return output_file
+                return files[0]
             else:
                 web_logger("No output file found")
                 return None
@@ -170,11 +168,6 @@ def run_web_operation(cli_args):
         import traceback
         web_logger(traceback.format_exc())
         raise e
-
-def core_logic(cli_args=None, logger=None):
-    if logger is None:
-        logger = web_logger
-    return run_web_operation(cli_args)
 `;
             
             pyodide.runPython(operationRunnerCode);
@@ -412,6 +405,23 @@ def core_logic(cli_args=None, logger=None):
                 this.log("Operation completed successfully!");
             } else {
                 this.log("Operation completed but no output file was returned.");
+                
+                // Try to find and download any output files
+                try {
+                    const files = pyodide.FS.readdir('/');
+                    const outputFiles = files.filter(f => 
+                        (f.endsWith('.bytes') || f.endsWith('.txt')) && 
+                        !f.includes('inputFile') && 
+                        !f.includes('splicerFile')
+                    );
+                    
+                    if (outputFiles.length > 0) {
+                        this.log(`Found output files: ${outputFiles.join(', ')}`);
+                        outputFiles.forEach(file => this.downloadVFSFile(file));
+                    }
+                } catch (error) {
+                    this.log(`Could not list output files: ${error.message}`);
+                }
             }
 
         } catch (error) {
