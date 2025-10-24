@@ -101,46 +101,8 @@ class AnimationTool {
         try {
             this.log("📦 Loading Python modules...");
             
-            // Load all modules in one go to avoid import issues
-            const modules = [
-                'frame_modifiers.py',
-                'user_pref.py', 
-                'animation_decrypter_2.py',
-                'runner_web.py'
-            ];
-            
-            let combinedCode = '';
-            
-            for (const module of modules) {
-                try {
-                    const response = await fetch(`./python_core/${module}`);
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    
-                    let code = await response.text();
-                    
-                    // Remove problematic import statements
-                    if (module === 'animation_decrypter_2.py') {
-                        code = code.replace(/from frame_modifiers import[^;]+;/, '');
-                    }
-                    if (module === 'runner_web.py') {
-                        code = code.replace(/from animation_decrypter_2 import[^;]+;/, '');
-                        code = code.replace(/from user_pref import[^;]+;/, '');
-                    }
-                    
-                    combinedCode += `\n# === ${module} ===\n${code}\n`;
-                    this.log(`✅ Loaded: ${module}`);
-                } catch (error) {
-                    this.log(`❌ Failed to load ${module}: ${error}`);
-                    throw error;
-                }
-            }
-            
-            // Execute all code at once
-            pyodide.runPython(combinedCode);
-            this.log("✅ All Python code executed");
-            
-            // Create a unified operation runner
-            const operationRunnerCode = `
+            // First, set up the Python environment
+            const setupCode = `
 import sys
 import js
 import json
@@ -148,80 +110,104 @@ import json
 def web_logger(message):
     js.console.log(f"PYTHON: {message}")
 
-def run_operation_safely(cli_args):
+web_logger("Python environment initialized")
+`;
+            pyodide.runPython(setupCode);
+            
+            // Load modules in correct dependency order
+            const modules = [
+                { name: 'frame_modifiers.py', dependencies: [] },
+                { name: 'user_pref.py', dependencies: [] },
+                { name: 'animation_decrypter_2.py', dependencies: ['frame_modifiers.py'] },
+                { name: 'runner_web.py', dependencies: ['animation_decrypter_2.py', 'user_pref.py'] }
+            ];
+            
+            for (const module of modules) {
+                try {
+                    const response = await fetch(`./python_core/${module.name}`);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    
+                    let code = await response.text();
+                    
+                    // Handle imports by creating global references
+                    if (module.name === 'animation_decrypter_2.py') {
+                        // Replace the import with global function references
+                        code = code.replace(
+                            /from frame_modifiers import \([^)]+\)/,
+                            `# frame_modifiers functions available globally
+# No import needed`
+                        );
+                    }
+                    
+                    if (module.name === 'runner_web.py') {
+                        // Replace imports with global references
+                        code = code.replace(
+                            'from animation_decrypter_2 import main as core_logic',
+                            '# main function available globally'
+                        );
+                        code = code.replace(
+                            'from user_pref import load_preferences',
+                            '# load_preferences available globally'
+                        );
+                    }
+                    
+                    // Execute the module code
+                    pyodide.runPython(code);
+                    this.log(`✅ Loaded: ${module.name}`);
+                    
+                } catch (error) {
+                    this.log(`❌ Failed to load ${module.name}: ${error}`);
+                    throw error;
+                }
+            }
+            
+            // Create a unified operation runner that works with the existing functions
+            const operationRunnerCode = `
+def run_web_operation(cli_args):
     try:
         web_logger(f"Starting operation: {cli_args.get('selected_operation', 'UNKNOWN')}")
         
-        # Convert Pyodide dict to regular Python dict
+        # Convert to regular Python dict
         args_dict = {}
         for key in cli_args:
             args_dict[key] = cli_args[key]
         
-        # Call the main function directly
+        # Call the main function
         if 'main' in globals():
-            web_logger("Calling main function...")
             result = main(cli_args=args_dict, logger=web_logger)
-            web_logger(f"Operation completed, result: {result}")
+            web_logger(f"Operation completed successfully")
             return result
         else:
-            raise Exception("main function not found in global scope")
+            raise Exception("main function not found")
             
     except Exception as e:
-        web_logger(f"Operation failed: {str(e)}")
+        web_logger(f"Operation error: {str(e)}")
         import traceback
         web_logger(traceback.format_exc())
         raise e
 
-# Create aliases for backward compatibility
-def run_web_operation(cli_args):
-    return run_operation_safely(cli_args)
-
+# Create alias for compatibility
 def core_logic(cli_args=None, logger=None):
     if logger is None:
         logger = web_logger
-    return run_operation_safely(cli_args)
+    return run_web_operation(cli_args)
 
-# Verify all required functions are available
-required_functions = [
-    'shorten_animation_data', 'lengthen_animation_data', 'process_bone_data',
-    'load_preferences', 'main'
-]
-
-available_functions = []
-missing_functions = []
-
-for func in required_functions:
-    if func in globals():
-        available_functions.append(func)
-    else:
-        missing_functions.append(func)
-
-web_logger(f"Available functions: {available_functions}")
-if missing_functions:
-    web_logger(f"WARNING: Missing functions: {missing_functions}")
-else:
-    web_logger("✅ All required functions are available")
+web_logger("Operation runner created successfully")
 `;
             
             pyodide.runPython(operationRunnerCode);
             this.log("✅ Operation runner created");
             
-            // Test that functions are available
+            // Verify the main function is available
             try {
-                const testResult = pyodide.runPython(`
-def test_function_availability():
-    funcs = ['run_operation_safely', 'run_web_operation', 'core_logic', 'main']
-    available = []
-    for func in funcs:
-        if func in globals():
-            available.append(func)
-    return available
-
-test_function_availability()
-`);
-                this.log(`✅ Available functions: ${testResult}`);
+                const mainAvailable = pyodide.runPython("'main' in globals()");
+                if (mainAvailable) {
+                    this.log("✅ Main function is available");
+                } else {
+                    this.log("❌ Main function not found");
+                }
             } catch (error) {
-                this.log(`⚠️ Function test failed: ${error}`);
+                this.log(`⚠️ Could not verify main function: ${error}`);
             }
             
         } catch (error) {
@@ -451,41 +437,20 @@ test_function_availability()
 
             this.log(`Starting ${operation} operation...`);
             
-            let outputFilename = null;
-            let lastError = null;
-            
-            // Try multiple function calling methods
-            const methods = [
-                'run_operation_safely',
-                'run_web_operation', 
-                'core_logic',
-                'main'
-            ];
-            
-            for (const method of methods) {
-                try {
-                    this.log(`Trying method: ${method}...`);
-                    const pythonFunc = pyodide.globals.get(method);
-                    if (pythonFunc) {
-                        const pyArgs = pyodide.toPy(cliArgs);
-                        outputFilename = await pythonFunc(pyArgs);
-                        if (outputFilename) {
-                            this.log(`✅ Success with ${method}`);
-                            break;
-                        }
-                    }
-                } catch (error) {
-                    lastError = error;
-                    this.log(`⚠️ ${method} failed: ${error.message}`);
-                }
+            // Use the run_web_operation function
+            const run_web_operation = pyodide.globals.get('run_web_operation');
+            if (!run_web_operation) {
+                throw new Error("run_web_operation function not found");
             }
+            
+            const pyArgs = pyodide.toPy(cliArgs);
+            const outputFilename = await run_web_operation(pyArgs);
             
             if (outputFilename) {
                 this.downloadVFSFile(outputFilename);
                 this.log("✅ Operation completed successfully!");
             } else {
-                this.log(`❌ All methods failed. Last error: ${lastError?.message || 'Unknown error'}`);
-                this.log("💡 Check browser console for detailed Python errors");
+                this.log("⚠️ Operation completed but no output file was returned.");
             }
 
         } catch (error) {
