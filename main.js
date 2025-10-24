@@ -155,47 +155,37 @@ def run_web_operation(cli_args):
             args_dict[key] = cli_args[key]
         
         web_logger(f"Running operation: {args_dict.get('selected_operation', 'UNKNOWN')}")
-        web_logger(f"Input file: {args_dict.get('file_path', 'None')}")
+        
+        # Debug: List ALL files before operation
+        import os
+        web_logger("=== DEBUG FILE LISTING ===")
+        for root, dirs, files in os.walk('.'):
+            for file in files:
+                web_logger(f"Found: {os.path.join(root, file)}")
+        web_logger("=== END DEBUG ===")
         
         if 'main' in globals():
-            # List all files before operation
-            import os
-            files_before = set(os.listdir('.'))
-            web_logger(f"Files before: {list(files_before)}")
-            
             # Run the main function directly
-            try:
-                main(cli_args=args_dict, logger=web_logger)
-                web_logger("Main function completed")
-            except Exception as e:
-                web_logger(f"Main function error: {e}")
-                raise
+            main(cli_args=args_dict, logger=web_logger)
+            web_logger("Main function completed")
             
-            # List all files after operation
-            files_after = set(os.listdir('.'))
-            web_logger(f"Files after: {list(files_after)}")
+            # Check for output files
+            output_files = []
+            for root, dirs, files in os.walk('.'):
+                for file in files:
+                    if file.endswith('.bytes') or file.endswith('.txt') or file.endswith('.csv'):
+                        # Skip input files
+                        if (args_dict.get('file_path') and file == args_dict.get('file_path')) or \
+                           (args_dict.get('file1') and file == args_dict.get('file1')) or \
+                           (args_dict.get('file2') and file == args_dict.get('file2')):
+                            continue
+                        output_files.append(file)
             
-            # Find new files
-            new_files = files_after - files_before
-            web_logger(f"New files: {list(new_files)}")
-            
-            # Filter for output files (not input files)
-            input_files = []
-            if 'file_path' in args_dict and args_dict['file_path']:
-                input_files.append(args_dict['file_path'])
-            if 'file1' in args_dict and args_dict['file1']:
-                input_files.append(args_dict['file1'])
-            if 'file2' in args_dict and args_dict['file2']:
-                input_files.append(args_dict['file2'])
-            
-            output_files = [f for f in new_files if f not in input_files and (f.endswith('.bytes') or f.endswith('.txt') or f.endswith('.csv'))]
-            web_logger(f"Output files: {output_files}")
+            web_logger(f"Potential output files: {output_files}")
             
             if output_files:
                 # Return the first output file
-                output_file = output_files[0]
-                web_logger(f"Selected output: {output_file}")
-                return output_file
+                return output_files[0]
             else:
                 web_logger("No output files found")
                 return None
@@ -428,6 +418,7 @@ def run_web_operation(cli_args):
         try {
             const cliArgs = await this.gatherCLIArguments();
             
+            // Upload files with better error handling
             await this.uploadFilesToVFS();
 
             this.log(`Starting ${operation} operation...`);
@@ -445,14 +436,6 @@ def run_web_operation(cli_args):
                 this.log("Operation completed successfully!");
             } else {
                 this.log("Operation completed but no output file was returned.");
-                
-                // Debug: List all files in VFS
-                try {
-                    const files = pyodide.FS.readdir('/');
-                    this.log(`All files in VFS: ${files.join(', ')}`);
-                } catch (error) {
-                    this.log(`Could not list VFS files: ${error.message}`);
-                }
             }
 
         } catch (error) {
@@ -526,9 +509,23 @@ def run_web_operation(cli_args):
         if (operation !== 'SPLICER') {
             const mainFile = document.getElementById('inputFile').files[0];
             if (mainFile) {
-                const data = await this.readFileAsArrayBuffer(mainFile);
-                pyodide.FS.writeFile(mainFile.name, new Uint8Array(data));
-                this.log(`Uploaded: ${mainFile.name}`);
+                try {
+                    const data = await this.readFileAsArrayBuffer(mainFile);
+                    // Write to current working directory
+                    pyodide.FS.writeFile(`./${mainFile.name}`, new Uint8Array(data));
+                    this.log(`Uploaded: ${mainFile.name}`);
+                    
+                    // Verify the file was written
+                    try {
+                        const stats = pyodide.FS.stat(`./${mainFile.name}`);
+                        this.log(`File verified: ${mainFile.name} (${stats.size} bytes)`);
+                    } catch (e) {
+                        this.log(`ERROR: File not found after upload: ${mainFile.name}`);
+                    }
+                } catch (error) {
+                    this.log(`ERROR uploading ${mainFile.name}: ${error}`);
+                    throw error;
+                }
             }
         } else {
             const file1 = document.getElementById('splicerFile1').files[0];
@@ -536,12 +533,12 @@ def run_web_operation(cli_args):
             
             if (file1) {
                 const data1 = await this.readFileAsArrayBuffer(file1);
-                pyodide.FS.writeFile(file1.name, new Uint8Array(data1));
+                pyodide.FS.writeFile(`./${file1.name}`, new Uint8Array(data1));
                 this.log(`Uploaded: ${file1.name}`);
             }
             if (file2) {
                 const data2 = await this.readFileAsArrayBuffer(file2);
-                pyodide.FS.writeFile(file2.name, new Uint8Array(data2));
+                pyodide.FS.writeFile(`./${file2.name}`, new Uint8Array(data2));
                 this.log(`Uploaded: ${file2.name}`);
             }
         }
@@ -558,7 +555,7 @@ def run_web_operation(cli_args):
 
     downloadVFSFile(filename) {
         try {
-            const fileData = pyodide.FS.readFile(filename, { encoding: 'binary' });
+            const fileData = pyodide.FS.readFile(`./${filename}`, { encoding: 'binary' });
             const blob = new Blob([fileData], { type: 'application/octet-stream' });
             const url = URL.createObjectURL(blob);
             
@@ -578,10 +575,10 @@ def run_web_operation(cli_args):
 
     cleanupVFS() {
         try {
-            pyodide.FS.readdir('/').forEach(file => {
+            pyodide.FS.readdir('.').forEach(file => {
                 if (file.endsWith('.bytes') || file.endsWith('.csv') || file.endsWith('.txt')) {
                     try {
-                        pyodide.FS.unlink(file);
+                        pyodide.FS.unlink(`./${file}`);
                     } catch (e) {}
                 }
             });
