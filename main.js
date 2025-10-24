@@ -3,7 +3,6 @@
 let pyodide = null;
 let currentBoneCheckboxes = new Map();
 
-// DOM Elements
 const elements = {
     outputLog: document.getElementById('outputLog'),
     runButton: document.getElementById('runButton'),
@@ -20,7 +19,6 @@ const elements = {
     deselectAllBones: document.getElementById('deselectAllBones')
 };
 
-// Bone map matching your Python BONE_MAP
 const BONE_MAP = {
     0: "pelvis", 1: "stomach", 2: "chest", 3: "neck", 4: "head", 5: "hair", 6: "hair1",
     7: "zero_joint_hand_l", 8: "clavicle_l", 9: "arm_l", 10: "forearm_l",
@@ -54,7 +52,6 @@ class AnimationTool {
         elements.selectAllBones.addEventListener('click', () => this.toggleAllBones(true));
         elements.deselectAllBones.addEventListener('click', () => this.toggleAllBones(false));
         
-        // Splicer file listeners
         document.getElementById('splicerFile1').addEventListener('change', () => this.updateSplicerInfo());
         document.getElementById('splicerFile2').addEventListener('change', () => this.updateSplicerInfo());
     }
@@ -70,159 +67,131 @@ class AnimationTool {
     }
 
     async initializePyodide() {
-        this.log("🚀 Loading Pyodide runtime...");
+        this.log("Loading Pyodide runtime...");
         
         try {
             pyodide = await loadPyodide();
-            this.log("✅ Pyodide loaded successfully!");
+            this.log("Pyodide loaded");
 
-            // Load required packages
             await pyodide.loadPackage(['micropip']);
             const micropip = pyodide.pyimport('micropip');
             await micropip.install('numpy');
-            this.log("✅ NumPy installed");
+            this.log("NumPy installed");
 
-            // Load Python modules
             await this.loadPythonModules();
             
             elements.runButton.textContent = "Run Operation";
             elements.runButton.disabled = false;
             elements.runButton.onclick = () => this.runOperation();
 
-            this.log("✅ System ready! Select an operation to begin.");
+            this.log("System ready");
             
         } catch (error) {
-            this.log(`❌ Failed to initialize: ${error}`);
+            this.log(`Failed to initialize: ${error}`);
             elements.runButton.textContent = "Initialization Failed";
         }
     }
 
     async loadPythonModules() {
         try {
-            this.log("📦 Loading Python modules...");
+            this.log("Loading Python modules...");
             
-            // First, set up the Python environment
             const setupCode = `
 import sys
 import js
-import json
 
 def web_logger(message):
     js.console.log(f"PYTHON: {message}")
-
-web_logger("Python environment initialized")
 `;
             pyodide.runPython(setupCode);
             
-            // Load modules in correct dependency order
             const modules = [
-                { name: 'frame_modifiers.py', dependencies: [] },
-                { name: 'user_pref.py', dependencies: [] },
-                { name: 'animation_decrypter_2.py', dependencies: ['frame_modifiers.py'] },
-                { name: 'runner_web.py', dependencies: ['animation_decrypter_2.py', 'user_pref.py'] }
+                'frame_modifiers.py',
+                'user_pref.py',
+                'animation_decrypter_2.py',
+                'runner_web.py'
             ];
             
             for (const module of modules) {
                 try {
-                    const response = await fetch(`./python_core/${module.name}`);
+                    const response = await fetch(`./python_core/${module}`);
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
                     
                     let code = await response.text();
                     
-                    // Handle imports by creating global references
-                    if (module.name === 'animation_decrypter_2.py') {
-                        // Replace the import with global function references
-                        code = code.replace(
-                            /from frame_modifiers import \([^)]+\)/,
-                            `# frame_modifiers functions available globally
-# No import needed`
-                        );
+                    if (module === 'animation_decrypter_2.py') {
+                        code = code.replace(/from frame_modifiers import \([^)]+\)/, '');
                     }
                     
-                    if (module.name === 'runner_web.py') {
-                        // Replace imports with global references
-                        code = code.replace(
-                            'from animation_decrypter_2 import main as core_logic',
-                            '# main function available globally'
-                        );
-                        code = code.replace(
-                            'from user_pref import load_preferences',
-                            '# load_preferences available globally'
-                        );
+                    if (module === 'runner_web.py') {
+                        code = code.replace('from animation_decrypter_2 import main as core_logic', '');
+                        code = code.replace('from user_pref import load_preferences', '');
                     }
                     
-                    // Execute the module code
                     pyodide.runPython(code);
-                    this.log(`✅ Loaded: ${module.name}`);
+                    this.log(`Loaded: ${module}`);
                     
                 } catch (error) {
-                    this.log(`❌ Failed to load ${module.name}: ${error}`);
+                    this.log(`Failed to load ${module}: ${error}`);
                     throw error;
                 }
             }
             
-            // Create a unified operation runner that works with the existing functions
             const operationRunnerCode = `
 def run_web_operation(cli_args):
     try:
-        web_logger(f"Starting operation: {cli_args.get('selected_operation', 'UNKNOWN')}")
-        
-        # Convert to regular Python dict
         args_dict = {}
         for key in cli_args:
             args_dict[key] = cli_args[key]
         
-        # Call the main function
         if 'main' in globals():
-            result = main(cli_args=args_dict, logger=web_logger)
-            web_logger(f"Operation completed successfully")
-            return result
+            main(cli_args=args_dict, logger=web_logger)
+            
+            import os
+            import time
+            files = []
+            for file in os.listdir('.'):
+                if file.endswith('.bytes'):
+                    files.append((file, os.path.getmtime(file)))
+            
+            if files:
+                files.sort(key=lambda x: x[1], reverse=True)
+                output_file = files[0][0]
+                web_logger(f"Output file: {output_file}")
+                return output_file
+            else:
+                web_logger("No output file found")
+                return None
         else:
             raise Exception("main function not found")
             
     except Exception as e:
-        web_logger(f"Operation error: {str(e)}")
+        web_logger(f"Error: {str(e)}")
         import traceback
         web_logger(traceback.format_exc())
         raise e
 
-# Create alias for compatibility
 def core_logic(cli_args=None, logger=None):
     if logger is None:
         logger = web_logger
     return run_web_operation(cli_args)
-
-web_logger("Operation runner created successfully")
 `;
             
             pyodide.runPython(operationRunnerCode);
-            this.log("✅ Operation runner created");
-            
-            // Verify the main function is available
-            try {
-                const mainAvailable = pyodide.runPython("'main' in globals()");
-                if (mainAvailable) {
-                    this.log("✅ Main function is available");
-                } else {
-                    this.log("❌ Main function not found");
-                }
-            } catch (error) {
-                this.log(`⚠️ Could not verify main function: ${error}`);
-            }
+            this.log("Operation runner created");
             
         } catch (error) {
-            this.log(`❌ Failed to load Python modules: ${error}`);
+            this.log(`Failed to load Python modules: ${error}`);
             throw error;
         }
         
-        this.log("✅ All Python modules loaded successfully");
+        this.log("All Python modules loaded");
     }
 
     updateParametersUI() {
         const operation = elements.operationSelect.value;
         elements.paramsContainer.innerHTML = '';
         
-        // Hide special sections
         elements.splicerSection.style.display = 'none';
         elements.boneSelectionSection.style.display = 'none';
 
@@ -275,7 +244,6 @@ web_logger("Operation runner created successfully")
                         <label>Remove Frames:</label>
                         <input type="text" id="trimRange" value="1-10" placeholder="e.g., 1-10">
                     </div>
-                    <p class="note">Frames are counted from 1. Range is inclusive.</p>
                 `;
                 break;
 
@@ -297,7 +265,6 @@ web_logger("Operation runner created successfully")
                         <label>Bone ID:</label>
                         <input type="number" id="boneId" value="-1">
                     </div>
-                    <p class="note">Use -1 for all bones, 0 for pelvis</p>
                 `;
                 break;
 
@@ -366,10 +333,7 @@ web_logger("Operation runner created successfully")
         return selected;
     }
 
-    updateSplicerInfo() {
-        // Placeholder for frame count updates
-        // Would require file parsing to implement
-    }
+    updateSplicerInfo() {}
 
     showSettingsModal() {
         const prefs = this.loadPreferences();
@@ -410,7 +374,6 @@ web_logger("Operation runner created successfully")
     async runOperation() {
         const operation = elements.operationSelect.value;
         
-        // Validate inputs
         if (operation !== 'SPLICER' && !document.getElementById('inputFile').files[0]) {
             alert('Please select an animation file.');
             return;
@@ -432,12 +395,10 @@ web_logger("Operation runner created successfully")
         try {
             const cliArgs = await this.gatherCLIArguments();
             
-            // Handle file uploads to virtual file system
             await this.uploadFilesToVFS();
 
             this.log(`Starting ${operation} operation...`);
             
-            // Use the run_web_operation function
             const run_web_operation = pyodide.globals.get('run_web_operation');
             if (!run_web_operation) {
                 throw new Error("run_web_operation function not found");
@@ -448,13 +409,13 @@ web_logger("Operation runner created successfully")
             
             if (outputFilename) {
                 this.downloadVFSFile(outputFilename);
-                this.log("✅ Operation completed successfully!");
+                this.log("Operation completed successfully!");
             } else {
-                this.log("⚠️ Operation completed but no output file was returned.");
+                this.log("Operation completed but no output file was returned.");
             }
 
         } catch (error) {
-            this.log(`❌ Error: ${error.message}`);
+            this.log(`Error: ${error.message}`);
             console.error("Detailed error:", error);
         } finally {
             elements.runButton.disabled = false;
@@ -470,6 +431,18 @@ web_logger("Operation runner created successfully")
             save_csvs: document.getElementById('saveCSV').checked,
             export_extension: document.getElementById('exportExt').value || '.bytes'
         };
+
+        if (operation !== 'SPLICER') {
+            const inputFile = document.getElementById('inputFile').files[0];
+            if (inputFile) {
+                args.file_path = inputFile.name;
+            }
+        } else {
+            const file1 = document.getElementById('splicerFile1').files[0];
+            const file2 = document.getElementById('splicerFile2').files[0];
+            if (file1) args.file1 = file1.name;
+            if (file2) args.file2 = file2.name;
+        }
 
         switch(operation) {
             case 'SHORTEN':
@@ -498,8 +471,6 @@ web_logger("Operation runner created successfully")
                 args.target_bone_ids = this.getSelectedBoneIds();
                 break;
             case 'SPLICER':
-                args.file1 = document.getElementById('splicerFile1').files[0]?.name;
-                args.file2 = document.getElementById('splicerFile2').files[0]?.name;
                 args.range1 = document.getElementById('splicerRange1').value;
                 args.range2 = document.getElementById('splicerRange2').value;
                 break;
@@ -516,19 +487,21 @@ web_logger("Operation runner created successfully")
             if (mainFile) {
                 const data = await this.readFileAsArrayBuffer(mainFile);
                 pyodide.FS.writeFile(mainFile.name, new Uint8Array(data));
+                this.log(`Uploaded: ${mainFile.name}`);
             }
         } else {
-            // Handle SPLICER files
             const file1 = document.getElementById('splicerFile1').files[0];
             const file2 = document.getElementById('splicerFile2').files[0];
             
             if (file1) {
                 const data1 = await this.readFileAsArrayBuffer(file1);
                 pyodide.FS.writeFile(file1.name, new Uint8Array(data1));
+                this.log(`Uploaded: ${file1.name}`);
             }
             if (file2) {
                 const data2 = await this.readFileAsArrayBuffer(file2);
                 pyodide.FS.writeFile(file2.name, new Uint8Array(data2));
+                this.log(`Uploaded: ${file2.name}`);
             }
         }
     }
@@ -568,18 +541,13 @@ web_logger("Operation runner created successfully")
                 if (file.endsWith('.bytes') || file.endsWith('.csv') || file.endsWith('.txt')) {
                     try {
                         pyodide.FS.unlink(file);
-                    } catch (e) {
-                        // Ignore cleanup errors
-                    }
+                    } catch (e) {}
                 }
             });
-        } catch (error) {
-            // Ignore cleanup errors
-        }
+        } catch (error) {}
     }
 }
 
-// Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     window.animationTool = new AnimationTool();
 });
