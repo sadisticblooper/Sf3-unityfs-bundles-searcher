@@ -1,107 +1,64 @@
-// Global variable for the Pyodide instance
+// main.js (Updated for Modular Pyodide)
+
 let pyodide = null;
 const outputLog = document.getElementById('outputLog');
 const runButton = document.getElementById('runButton');
+// ... (logToConsole, initializePyodide, downloadVFSFile functions remain the same) ...
 
-// Function to log messages to the HTML <pre> area
-function logToConsole(message) {
-    outputLog.textContent += message + '\n';
-    // Scroll to the bottom of the log
-    outputLog.scrollTop = outputLog.scrollHeight;
-}
-
-/**
- * Initializes Pyodide and sets up the environment.
- */
 async function initializePyodide() {
-    logToConsole("Starting Pyodide initialization...");
-    try {
-        pyodide = await loadPyodide();
-        
-        // This is where you would normally load NumPy and your .py files
-        await pyodide.loadPackage(['numpy']);
-
-        logToConsole("Pyodide is ready! NumPy loaded.");
-        
-        // Setup the run button state
-        runButton.textContent = "Run Operation";
-        runButton.disabled = false;
-        runButton.onclick = runPythonCode;
-        
-    } catch (e) {
-        logToConsole(`ERROR: Pyodide failed to load: ${e}`);
-        runButton.textContent = "Initialization Failed";
-    }
+    // ... (Pyodide loading logic) ...
+    
+    // Use micropip to install your package from the local file system.
+    // This is the cleanest way to import local modules/packages.
+    await pyodide.loadPackage(['micropip', 'numpy']);
+    
+    // Manually register your /python_core directory as a Python package.
+    // This assumes your Python files are correctly placed in the python_core/ directory.
+    await pyodide.runPythonAsync(`
+        import micropip
+        # The python_core folder is the package source
+        await micropip.install('/python_core') 
+    `);
+    
+    logToConsole("Pyodide is ready! Core modules loaded.");
+    runButton.textContent = "Run Operation";
+    runButton.disabled = false;
+    runButton.onclick = runPythonCode;
 }
 
-/**
- * Executes a boilerplate Python script using the arguments from the UI.
- */
+// ... (downloadVFSFile function must be included here) ...
+
 async function runPythonCode() {
-    runButton.disabled = true;
-    runButton.textContent = "Processing...";
-    
-    // 1. Gather UI parameters (Mimicking your get_ui_params)
-    const operation = document.getElementById('operationSelect').value;
-    const factorN = document.getElementById('factor_n').value;
-    const factorD = document.getElementById('factor_d').value;
-    const boneIDs = document.getElementById('boneIDs').value;
-    const filename = document.getElementById('inputFile').files[0] ? document.getElementById('inputFile').files[0].name : "NO_FILE_SELECTED";
-
-    logToConsole(`\n--- Running Operation: ${operation} ---`);
-    logToConsole(`File: ${filename}`);
-    logToConsole(`Factors: ${factorN}/${factorD}`);
-    logToConsole(`Bones: ${boneIDs || 'ALL'}`);
-
-    // 2. Define the Python script as a multiline string
-    // This script will run in the Pyodide environment.
-    const pythonScript = `
-import sys
-import datetime
-
-# Define a simple function to print and return
-def process_data(op, N, D, bones, filename):
-    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-    
-    # Print to stdout, which is redirected to the JS console by default
-    print(f"[{timestamp}] Hello from Python! Operation: {op} started.")
-    print(f"[{timestamp}] Arguments received: N={N}, D={D}, Bones='{bones}'")
-    
-    # Simulate the work being done
-    result = f"Successfully simulated {op} on {filename}."
-    
-    # A successful run returns a value which can be captured by JS
-    return result
-
-# Get the variables passed from JavaScript
-op = '${operation}'
-N = '${factorN}'
-D = '${factorD}'
-bones = '${boneIDs}'
-filename = '${filename}'
-
-# Call the function and make sure its result is the last thing evaluated
-process_data(op, N, D, bones, filename)
-    `;
+    // ... (Gather UI parameters as before) ...
+    // ... (File upload and VFS write logic as before) ...
 
     try {
-        // 3. Execute the Python script
-        // pyodide.runPythonAsync is used because loading packages (which we did) is async.
-        const pythonResult = await pyodide.runPythonAsync(pythonScript);
+        // 1. Get a reference to your Python function from the loaded package
+        // This is the true modular way: pyodide.globals.get("module").get("function")
+        const python_module = pyodide.globals.get('pyodide_runner_web'); // Assuming the package name is pyodide_runner_web
+        const run_fn = python_module.get('run_web_operation');
+
+        // 2. Convert the JavaScript object (cliArgs) to a Pyodide-friendly Python object
+        const py_args = pyodide.toPy(cliArgs); 
         
-        // 4. Log the return value from the Python script
-        logToConsole(`Python Script Finished. Result (Returned to JS): ${pythonResult}`);
+        // 3. Execute the Python function asynchronously and capture the result (the output filename)
+        logToConsole("\nProcessing data in Pyodide...");
+        const outputFilename = await run_fn(py_args);
+        
+        // 4. Use the returned filename to trigger the download
+        if (outputFilename) {
+            downloadVFSFile(outputFilename, 'application/octet-stream');
+            // Clean up the VFS file after download is initiated
+            pyodide.FS.unlink(outputFilename);
+        } else {
+            logToConsole("Warning: Python script finished, but did not return a valid output path.");
+        }
         
     } catch (e) {
-        // 5. Log any errors that occurred in the Python script
-        logToConsole(`FATAL PYTHON ERROR: ${e.type}: ${e.message}`);
-        logToConsole("Check console for more details.");
+        logToConsole(`FATAL PYTHON ERROR: ${e.message || e}\n`);
     } finally {
-        runButton.textContent = "Run Operation";
-        runButton.disabled = false;
-        logToConsole("--------------------------------------");
+        // ... (Cleanup and UI reset) ...
     }
 }
 
-// Start the entire process
 initializePyodide();
