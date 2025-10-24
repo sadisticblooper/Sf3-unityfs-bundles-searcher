@@ -98,11 +98,12 @@ class AnimationTool {
     }
 
     async loadPythonModules() {
+        // Load modules in correct dependency order
         const modules = [
-            'animation_decrypter_2.py',
-            'frame_modifiers.py', 
-            'user_pref.py',
-            'runner_web.py'
+            'frame_modifiers.py',  // Load first - no dependencies
+            'user_pref.py',        // Load second - no dependencies  
+            'animation_decrypter_2.py', // Load third - depends on frame_modifiers
+            'runner_web.py'        // Load last - depends on animation_decrypter_2
         ];
         
         for (const module of modules) {
