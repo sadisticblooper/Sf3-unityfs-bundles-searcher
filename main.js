@@ -98,44 +98,56 @@ class AnimationTool {
     }
 
     async loadPythonModules() {
-    const modules = [
-        { name: 'frame_modifiers.py', hasImports: false },
-        { name: 'user_pref.py', hasImports: false },
-        { name: 'animation_decrypter_2.py', hasImports: true },
-        { name: 'runner_web.py', hasImports: true }
-    ];
-    
-    let allPythonCode = '';
-    
-    for (const module of modules) {
-        try {
-            const response = await fetch(`./python_core/${module.name}`);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            
-            let code = await response.text();
-            
-            // Remove import statements for modules we're loading
-            if (module.hasImports) {
-                code = code.replace(/from frame_modifiers import[^\n]+\n/g, '');
-                code = code.replace(/from animation_decrypter_2 import[^\n]+\n/g, '');
-                code = code.replace(/from user_pref import[^\n]+\n/g, '');
+        const modules = [
+            'frame_modifiers.py',
+            'user_pref.py', 
+            'animation_decrypter_2.py',
+            'runner_web.py'
+        ];
+        
+        for (const module of modules) {
+            try {
+                const response = await fetch(`./python_core/${module}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                let code = await response.text();
+                
+                // Remove import statements that cause issues
+                if (module === 'animation_decrypter_2.py') {
+                    // Comment out the frame_modifiers import
+                    code = code.replace(
+                        /from frame_modifiers import \([^)]+\)/,
+                        `# Import handled by loading order
+# from frame_modifiers import (
+#     shorten_animation_data, lengthen_animation_data, x_double_animation_data, 
+#     dash_animation_data, birth_location_animation_data, process_bone_data,
+#     split_dash_animation_data, trimmer_animation_data, axis_adder_animation_data,
+#     axis_scaler_animation_data
+# )`
+                    );
+                }
+                
+                if (module === 'runner_web.py') {
+                    // Comment out the imports
+                    code = code.replace(
+                        'from animation_decrypter_2 import main as core_logic',
+                        '# from animation_decrypter_2 import main as core_logic'
+                    );
+                    code = code.replace(
+                        'from user_pref import load_preferences', 
+                        '# from user_pref import load_preferences'
+                    );
+                }
+                
+                pyodide.runPython(code);
+                this.log(`✅ Loaded: ${module}`);
+            } catch (error) {
+                this.log(`❌ Failed to load ${module}: ${error}`);
             }
-            
-            allPythonCode += `\n# --- ${module.name} ---\n` + code + `\n`;
-            this.log(`✅ Loaded: ${module.name}`);
-        } catch (error) {
-            this.log(`❌ Failed to load ${module.name}: ${error}`);
         }
+        
+        this.log("✅ All Python modules loaded successfully");
     }
-    
-    // Execute all Python code at once
-    try {
-        pyodide.runPython(allPythonCode);
-        this.log("✅ All Python modules executed successfully");
-    } catch (error) {
-        this.log(`❌ Failed to execute Python code: ${error}`);
-    }
-}
 
     updateParametersUI() {
         const operation = elements.operationSelect.value;
