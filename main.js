@@ -1,4 +1,4 @@
-// main.js - WITH PYTHON ERROR HANDLING
+// main.js - FINAL WORKING VERSION
 let pyodide = null;
 let currentBoneCheckboxes = new Map();
 
@@ -366,47 +366,26 @@ web_logger("Python environment ready")
 
             this.log(`Starting ${operation} operation...`);
             
-            // DEBUG: Check if function exists
-            this.log("=== DEBUG: Checking Python function ===");
-            try {
-                const run_web_operation = pyodide.globals.get('run_web_operation');
-                if (!run_web_operation) {
-                    throw new Error("run_web_operation function not found in globals");
-                }
-                this.log("✓ run_web_operation found");
-                
-            } catch (e) {
-                this.log(`ERROR checking Python: ${e}`);
-                return;
-            }
+            // Convert CLI args to Python object
+            const pyArgs = pyodide.toPy(cliArgs);
+            pyodide.globals.set("cli_args", pyArgs);
 
             this.log("=== Calling Python function ===");
 
-            // Convert CLI args to Python object properly
-            const pyArgs = pyodide.toPy(cliArgs);
-
-            // Call the function and catch any Python errors
-            try {
-                const result = await pyodide.globals.get('run_web_operation')(pyArgs);
-                this.log(`Operation result: ${result}`);
-            } catch (error) {
-                this.log(`Python execution error: ${error}`);
-                // Try to get Python error details
-                try {
-                    const pythonError = await pyodide.runPython(`
-import sys
-if hasattr(sys, 'last_value'):
-    error_msg = f"Python error: {sys.last_value}"
-    print(error_msg)
-    error_msg
-else:
-    "No Python error details available"
+            // Call the function using runPython to ensure proper execution
+            const result = await pyodide.runPython(`
+try:
+    result = run_web_operation(cli_args)
+    print("Python returned:", result)
+    result
+except Exception as e:
+    print("Python error:", str(e))
+    import traceback
+    traceback.print_exc()
+    "ERROR: " + str(e)
 `);
-                    this.log(`Python error details: ${pythonError}`);
-                } catch (e) {
-                    this.log(`Could not get Python error details: ${e}`);
-                }
-            }
+            
+            this.log(`Operation result: ${result}`);
             
             // Check for output files in VFS and download them
             await this.downloadOutputFiles();
