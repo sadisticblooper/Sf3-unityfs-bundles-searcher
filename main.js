@@ -1,4 +1,4 @@
-// main.js - FIXED VERSION
+// main.js - DEBUG VERSION
 let pyodide = null;
 let currentBoneCheckboxes = new Map();
 
@@ -366,13 +366,39 @@ web_logger("Python environment ready")
 
             this.log(`Starting ${operation} operation...`);
             
-            const run_web_operation = pyodide.globals.get('run_web_operation');
-            if (!run_web_operation) {
-                throw new Error("run_web_operation function not found");
+            // DEBUG: Check if function exists
+            this.log("=== DEBUG: Checking Python function ===");
+            try {
+                const run_web_operation = pyodide.globals.get('run_web_operation');
+                if (!run_web_operation) {
+                    throw new Error("run_web_operation function not found in globals");
+                }
+                this.log("✓ run_web_operation found");
+                
+                // DEBUG: List all globals to see what's available
+                const globals = pyodide.globals.toJs();
+                const funcNames = Object.keys(globals).filter(key => typeof globals[key] === 'function');
+                this.log(`Python functions available: ${funcNames.join(', ')}`);
+                
+            } catch (e) {
+                this.log(`ERROR checking Python: ${e}`);
+                return;
             }
-            
+
+            this.log("=== Calling Python function ===");
             const pyArgs = pyodide.toPy(cliArgs);
-            const result = await run_web_operation(pyArgs);
+            const result = await pyodide.runPython(`
+try:
+    result = run_web_operation(${JSON.stringify(cliArgs)})
+    print("PYTHON RESULT:", result)
+    result
+except Exception as e:
+    print("PYTHON ERROR:", str(e))
+    import traceback
+    print("TRACEBACK:")
+    traceback.print_exc()
+    "ERROR: " + str(e)
+`);
             
             this.log(`Operation result: ${result}`);
             
