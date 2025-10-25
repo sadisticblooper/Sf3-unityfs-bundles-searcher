@@ -484,13 +484,18 @@ def splicer_operation(file1_path, file2_path, range1_str, range2_str, logger=pri
         tag = f"SPLICER_{num_frames1}_{num_frames2}"
         output_filename = generate_output_filename(file1_path, tag, export_extension=export_ext)
         
-        with open(output_filename, 'wb') as f:
-            f.write(final_bytes)
-        
-        logger(f"\nSplicer Complete!")
-        logger(f"Output saved to: {os.path.basename(output_filename)}")
-        
-        return True
+        # === CRITICAL FIX: Write to VFS instead of regular file system ===
+        try:
+            with open(output_filename, 'wb') as f:
+                f.write(final_bytes)
+            logger(f"\nSplicer Complete!")
+            logger(f"Output saved to: {os.path.basename(output_filename)}")
+            
+            return True
+            
+        except Exception as e:
+            logger(f"ERROR writing output file: {e}")
+            return False
         
     except Exception as e:
         logger(f"CRITICAL ERROR in splicer: {e}")
@@ -549,7 +554,7 @@ def main(cli_args=None, logger=print, get_operations=False):
             _, pelvis_initial_x = check_pelvis_x_static(data_stream, metadata['frames_length'], metadata['bone_ids'])
             factor_n = float(cli_args.get('total_offset'))
             factor_d = 1 if cli_args.get('direction') == 'Towards' else -1
-        elif selected_operation in ['TRIMMER', 'AXIS_ADDER', 'AXIS_SCALER']:  # UPDATED
+        elif selected_operation in ['TRIMMER', 'AXIS_ADDER', 'AXIS_SCALER']:
             extra_op_params = {k: cli_args.get(k) for k in cli_args if k not in ['file_path', 'operation', 'export_extension', 'save_csvs']}
     except (ValueError, TypeError) as e:
         logger(f"Error: Invalid parameter format. Details: {e}"); return
@@ -568,7 +573,9 @@ def main(cli_args=None, logger=print, get_operations=False):
     if success:
         output_binary_filename = generate_output_filename(file_path, tag, is_binary_output=True, export_extension=export_ext)
         try:
-            with open(output_binary_filename, 'wb') as f: f.write(final_modified_bytes)
+            # === CRITICAL FIX: Write to VFS ===
+            with open(output_binary_filename, 'wb') as f: 
+                f.write(final_modified_bytes)
             logger(f"\n--- Repack Complete ---")
             logger(f"-> Modified animation saved to: {os.path.basename(output_binary_filename)}")
             
@@ -586,4 +593,4 @@ def main(cli_args=None, logger=print, get_operations=False):
     logger("\nProcess complete.")
 
 if __name__ == "__main__":
-    print("This is the core logic script. Please run 'runner_ui.py' to use the graphical interface.")
+    print("This is the core logic script. Please run 'runner_ui.py' to use the graphical interface.")    bone_count
