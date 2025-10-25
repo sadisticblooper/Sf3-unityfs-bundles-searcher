@@ -1,4 +1,4 @@
-# runner_web.py - DEBUG ANIMATION CODE
+# runner_web.py - SIMPLE WORKING VERSION
 def web_logger(message):
     print(message)
 
@@ -6,23 +6,25 @@ def run_web_operation(cli_args):
     web_logger("--- Python Processor Starting ---")
     
     try:
-        # Get the main function from animation_decrypter_2
-        import animation_decrypter_2
+        web_logger("=== Running animation operation ===")
         
-        web_logger("=== Running animation_decrypter_2.main ===")
+        # Get the main function directly from globals
+        if 'main' not in globals():
+            web_logger("ERROR: main function not found in globals")
+            return "ERROR: main function not found"
         
-        # Run the main function with debug logging
-        animation_decrypter_2.main(cli_args=cli_args, logger=web_logger)
+        # Run the main function
+        main(cli_args=cli_args, logger=web_logger)
         
-        web_logger("=== Checking files after animation code ===")
+        web_logger("=== Checking results ===")
         import os
         files = os.listdir('.')
-        web_logger(f"All files: {files}")
+        web_logger(f"Files in VFS: {files}")
         
-        # Check what files were created
         input_file = cli_args.get('file_path')
-        output_files = [f for f in files if f != input_file and (f.endswith('.bytes') or f.endswith('.txt') or f.endswith('.csv'))]
-        web_logger(f"Output files created: {output_files}")
+        if input_file:
+            output_files = [f for f in files if f != input_file and (f.endswith('.bytes') or f.endswith('.txt') or f.endswith('.csv'))]
+            web_logger(f"Output files: {output_files}")
         
         web_logger("--- PROCESSING COMPLETE ---")
         return "SUCCESS"
