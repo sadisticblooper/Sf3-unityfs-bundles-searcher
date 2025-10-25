@@ -1,24 +1,27 @@
-# runner_web.py - ACTUAL WORKING VERSION
+# runner_web.py - USE ACTUAL ANIMATION LOGIC
 def web_logger(message):
     print(message)
 
 def run_web_operation(cli_args):
-    web_logger("PYTHON: Function started")
-    web_logger(f"PYTHON: Operation: {cli_args.get('selected_operation')}")
+    web_logger("PYTHON: Starting animation operation")
     
-    # Just create the output file directly
-    input_file = cli_args.get('file_path')
-    if input_file:
-        output_name = f"LENGTHENED_{input_file}"
-        web_logger(f"PYTHON: Creating {output_name}")
-        
-        with open(input_file, 'rb') as f:
-            data = f.read()
-        
-        with open(output_name, 'wb') as f:
-            f.write(data)
-        
-        web_logger("PYTHON: File created successfully")
+    # Get the actual operation from CLI args
+    operation = cli_args.get('selected_operation')
+    web_logger(f"PYTHON: Operation: {operation}")
     
-    web_logger("PYTHON: Function completed")
-    return "SUCCESS"
+    # Call the actual main function from animation_decrypter_2
+    try:
+        # Import the main function
+        from animation_decrypter_2 import main
+        
+        # Run the actual animation logic
+        main(cli_args=cli_args, logger=web_logger)
+        
+        web_logger("PYTHON: Animation operation completed")
+        return "SUCCESS"
+        
+    except Exception as e:
+        web_logger(f"PYTHON ERROR: {e}")
+        import traceback
+        web_logger(traceback.format_exc())
+        return f"ERROR: {str(e)}"
