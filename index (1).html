@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animation Modification Tool</title>
+    <style>
+        :root {
+            --bg-charcoal: #1E1E1E;
+            --bg-widget: #2D2D2D;
+            --text-light: #FDFEFE;
+            --primary-orange: #5E44E3;
+            --primary-orange-active: #4A35B3;
+            --red-button: #C0392B;
+            --red-button-active: #A93226;
+            --selection-blue: #3498DB;
+            --success-green: #27AE60;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-charcoal);
+            color: var(--text-light);
+            font-family: 'Helvetica', Arial, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* File Info Display */
+        .file-info {
+            background: var(--bg-widget);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--selection-blue);
+        }
+
+        .file-info h3 {
+            margin-bottom: 10px;
+            color: var(--selection-blue);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #444;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #999;
+        }
+
+        .info-value {
+            color: var(--text-light);
+        }
+
+        /* Rest of your existing CSS remains the same */
+        .title-container {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+        }
+
+        .title-char {
+            font-family: 'Impact', sans-serif;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .title-char.large {
+            font-size: 48px;
+        }
+
+        .title-char.small {
+            font-size: 24px;
+        }
+
+        .input-group {
+            background: var(--bg-widget);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .input-group input[type="file"],
+        .input-group select {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-charcoal);
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        .controls-panel {
+            background: var(--bg-widget);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .controls-panel h2 {
+            margin-bottom: 15px;
+            color: var(--text-light);
+        }
+
+        .param-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .param-row label {
+            min-width: 120px;
+        }
+
+        .param-row input {
+            flex: 1;
+            padding: 8px;
+            background: var(--bg-charcoal);
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: var(--text-light);
+        }
+
+        .special-panel {
+            background: var(--bg-widget);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary-orange);
+        }
+
+        .file-pair {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .file-input {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .bone-list {
+            max-height: 200px;
+            overflow-y: auto;
+            background: var(--bg-charcoal);
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        .bone-item {
+            padding: 5px;
+            border-bottom: 1px solid #444;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        .btn-primary {
+            background: var(--primary-orange);
+            color: var(--text-light);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-orange-active);
+        }
+
+        .btn-primary:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #666;
+            color: var(--text-light);
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .log-area {
+            background: var(--bg-widget);
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .log-area h2 {
+            margin-bottom: 15px;
+        }
+
+        #outputLog {
+            background: var(--bg-charcoal);
+            padding: 15px;
+            border-radius: 4px;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+
+        .log-success {
+            color: var(--success-green);
+        }
+
+        .log-error {
+            color: var(--red-button);
+        }
+
+        .log-warning {
+            color: #F39C12;
+        }
+
+        .log-info {
+            color: var(--selection-blue);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-widget);
+            padding: 30px;
+            border-radius: 8px;
+            min-width: 400px;
+        }
+
+        .setting-group {
+            margin-bottom: 15px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .note {
+            font-size: 12px;
+            color: #999;
+            font-style: italic;
+            margin-top: 10px;
+        }
+
+        .bone-controls {
+            margin-bottom: 10px;
+        }
+
+        .bone-controls button {
+            padding: 5px 10px;
+            margin-right: 5px;
+            font-size: 12px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #444;
+            border-radius: 2px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-orange);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Gradient Title -->
+        <div class="title-container">
+            <span class="title-char large" style="color: #ff0000;">B</span>
+            <span class="title-char small" style="color: #ff3333;">A</span>
+            <span class="title-char small" style="color: #ff6666;">R</span>
+            <span class="title-char small" style="color: #ff9999;">E</span>
+            <span class="title-char large" style="color: #ffcc00;">I</span>
+            <span class="title-char small" style="color: #ffff33;">R</span>
+            <span class="title-char small" style="color: #ffff66;">O</span>
+            <span class="title-char small" style="color: #ffff99;">N</span>
+        </div>
+
+        <!-- File Selection -->
+        <div class="input-group">
+            <label for="inputFile">1. Select Animation File:</label>
+            <input type="file" id="inputFile" accept=".bytes,.txt">
+        </div>
+
+        <!-- File Information Display -->
+        <div id="fileInfo" class="file-info" style="display: none;">
+            <h3>📁 File Information</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Filename:</span>
+                    <span class="info-value" id="infoFilename">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">File Size:</span>
+                    <span class="info-value" id="infoSize">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Frames:</span>
+                    <span class="info-value" id="infoFrames">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Bones:</span>
+                    <span class="info-value" id="infoBones">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Bone IDs:</span>
+                    <span class="info-value" id="infoBoneIds">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Data Size:</span>
+                    <span class="info-value" id="infoDataSize">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Operation Selection -->
+        <div class="controls-panel">
+            <h2>2. Operation Selection</h2>
+            <label for="operationSelect">Operation:</label>
+            <select id="operationSelect">
+                <option value="EXTRACT_CSV">EXTRACT_CSV: Extracts animation data to CSV</option>
+                <option value="X_DOUBLE">X_DOUBLE: Doubles X-axis values</option>
+                <option value="AXIS_ADDER">AXIS_ADDER: Adds values to axis</option>
+                <option value="SHORTEN">SHORTEN: Shortens animation by a factor</option>
+                <option value="LENGTHEN">LENGTHEN: Lengthens animation by a factor</option>
+                <option value="TRIMMER">TRIMMER: Removes frame range</option>
+            </select>
+
+            <!-- Dynamic Parameters -->
+            <div id="paramsContainer"></div>
+        </div>
+
+        <!-- Bone Selection -->
+        <div id="boneSelectionSection" class="special-panel" style="display: none;">
+            <h3>Bone Selection</h3>
+            <div class="bone-controls">
+                <button id="selectAllBones" class="btn-secondary">Select All</button>
+                <button id="deselectAllBones" class="btn-secondary">Deselect All</button>
+            </div>
+            <div id="boneList" class="bone-list"></div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button id="runButton" class="btn-primary" disabled>Run Operation</button>
+            <button id="settingsButton" class="btn-secondary">Settings</button>
+            <label class="checkbox-label">
+                <input type="checkbox" id="saveCSV" checked>
+                Save CSV Comparison
+            </label>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar" style="display: none;" id="progressContainer">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <!-- Log Output -->
+        <div class="log-area">
+            <h2>Processing Log</h2>
+            <pre id="outputLog">Select an animation file to begin...</pre>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <h2>Settings</h2>
+            <div class="setting-group">
+                <label>Export Format:</label>
+                <select id="exportExt">
+                    <option value=".bytes">.bytes</option>
+                    <option value=".txt">.txt</option>
+                </select>
+            </div>
+            <div class="modal-buttons">
+                <button id="saveSettings" class="btn-primary">Save</button>
+                <button id="cancelSettings" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Bone mapping (extended)
+        const BONE_MAP = {
+            0: "pelvis", 1: "stomach", 2: "chest", 3: "neck", 4: "head", 5: "hair", 6: "hair1",
+            7: "zero_joint_hand_l", 8: "clavicle_l", 9: "arm_l", 10: "forearm_l",
+            11: "forearm_twist_l", 12: "hand_l", 13: "weapon_l", 14: "f_big1_l", 15: "f_big2_l", 16: "f_big3_l",
+            17: "f_main1_l", 18: "f_main2_l", 19: "f_main3_l", 20: "f_pointer1_l", 21: "f_pointer2_l", 22: "f_pointer3_l",
+            23: "scapular_l", 24: "chest_l", 25: "zero_joint_hand_r", 26: "clavicle_r", 27: "arm_r", 28: "forearm_r",
+            29: "forearm_twist_r", 30: "hand_r", 31: "weapons_r", 32: "f_big1_r", 33: "f_big2_r", 34: "f_big3_r",
+            35: "f_main1_r", 36: "f_main2_r", 37: "f_main3_r", 38: "f_pointer1_r", 39: "f_pointer2_r", 40: "f_pointer3_r",
+            41: "scapular_r", 42: "chest_r", 43: "zero_joint_pelvis_l", 44: "thigh_l", 45: "calf_l", 46: "foot_l",
+            47: "toe_l", 48: "back_l", 49: "chest_h_49", 50: "stomach_h_50",
+            51: "zero_joint_pelvis_r", 52: "thigh_r", 53: "calf_r", 54: "foot_r", 55: "toe_r", 56: "back_r",
+            57: "biceps_twist_l", 58: "biceps_twist_r", 59: "thigh_twist_l", 60: "thigh_twist_r",
+            61: "foot_r_extra", 62: "toe_r_extra", 63: "weapon_r_extra", 64: "weapon_l_extra", 65: "root_extra",
+        };
+
+        // Animation Processor
+        class AnimationProcessor {
+            constructor() {
+                this.logElement = document.getElementById('outputLog');
+            }
+
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const styledMessage = `[${timestamp}] <span class="log-${type}">${message}</span>`;
+                this.logElement.innerHTML += styledMessage + '\n';
+                this.logElement.scrollTop = this.logElement.scrollHeight;
+            }
+
+            clearLog() {
+                this.logElement.textContent = '';
+            }
+
+            updateProgress(percent) {
+                const progressFill = document.getElementById('progressFill');
+                const progressContainer = document.getElementById('progressContainer');
+                
+                if (percent > 0) {
+                    progressContainer.style.display = 'block';
+                    progressFill.style.width = percent + '%';
+                } else {
+                    progressContainer.style.display = 'none';
+                }
+            }
+
+            // Parse binary animation data with detailed info
+            parseAnimationData(arrayBuffer, filename) {
+                try {
+                    const dataView = new DataView(arrayBuffer);
+                    let offset = 0;
+
+                    this.log(`Parsing file: ${filename}`, 'info');
+                    this.log(`File size: ${this.formatFileSize(arrayBuffer.byteLength)}`, 'info');
+
+                    // Read header
+                    const header = dataView.getBigUint64(offset, true);
+                    offset += 8;
+
+                    if (header !== 457546134634734n) {
+                        this.log('Warning: Unexpected file header', 'warning');
+                    }
+
+                    // Read garbage size
+                    const garbageSize = dataView.getInt16(offset, true);
+                    offset += 2;
+
+                    // Skip garbage data
+                    const garbageDataSize = garbageSize * 8;
+                    offset += garbageDataSize;
+
+                    // Read frame count
+                    const framesLength = dataView.getInt32(offset, true);
+                    offset += 4;
+
+                    // Read bone count
+                    const boneIdsLength = dataView.getInt32(offset, true);
+                    offset += 4;
+
+                    // Read bone IDs
+                    const boneIds = [];
+                    for (let i = 0; i < boneIdsLength; i++) {
+                        boneIds.push(dataView.getInt16(offset, true));
+                        offset += 2;
+                    }
+
+                    const fileInfo = {
+                        header,
+                        framesLength,
+                        boneIds,
+                        boneIdsLength,
+                        garbageSize,
+                        dataOffset: offset,
+                        arrayBuffer,
+                        dataView,
+                        totalSize: arrayBuffer.byteLength
+                    };
+
+                    this.log(`✓ File parsed successfully`, 'success');
+                    this.log(`• Frames: ${framesLength}`, 'info');
+                    this.log(`• Bones: ${boneIdsLength}`, 'info');
+                    this.log(`• Bone IDs: [${boneIds.join(', ')}]`, 'info');
+                    this.log(`• Animation data starts at byte: ${offset}`, 'info');
+
+                    return fileInfo;
+
+                } catch (error) {
+                    this.log(`✗ Error parsing animation data: ${error}`, 'error');
+                    return null;
+                }
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            // Extract CSV from animation data
+            extractCSV(animationData) {
+                const { framesLength, boneIds, dataView, dataOffset } = animationData;
+                let offset = dataOffset;
+                const csvRows = [];
+
+                this.log('Starting CSV extraction...', 'info');
+                this.updateProgress(10);
+
+                // Add header
+                csvRows.push(['frame', 'bone_id', 'bone_name', 'pos_x', 'pos_y', 'pos_z']);
+
+                for (let frame = 0; frame < framesLength; frame++) {
+                    for (let boneIdx = 0; boneIdx < boneIds.length; boneIdx++) {
+                        // Read position data
+                        const posX = this.readFloat16(dataView, offset);
+                        const posY = this.readFloat16(dataView, offset + 2);
+                        const posZ = this.readFloat16(dataView, offset + 4);
+                        
+                        const boneId = boneIds[boneIdx];
+                        const boneName = BONE_MAP[boneId] || `Bone_${boneId}`;
+                        
+                        csvRows.push([
+                            frame + 1,
+                            boneId,
+                            boneName,
+                            posX.toFixed(6),
+                            posY.toFixed(6),
+                            posZ.toFixed(6)
+                        ]);
+
+                        offset += 12;
+                    }
+
+                    // Update progress
+                    if (frame % 10 === 0) {
+                        const progress = 10 + (frame / framesLength * 80);
+                        this.updateProgress(progress);
+                    }
+                }
+
+                this.updateProgress(100);
+                this.log(`✓ CSV extraction complete: ${csvRows.length - 1} data rows`, 'success');
+                return csvRows;
+            }
+
+            // Double X values operation
+            doubleX(animationData) {
+                const { framesLength, boneIds, dataView, dataOffset, arrayBuffer } = animationData;
+                const newBuffer = new ArrayBuffer(arrayBuffer.byteLength);
+                const newView = new DataView(newBuffer);
+
+                this.log('Starting X doubling operation...', 'info');
+                this.updateProgress(10);
+
+                // Copy header and metadata
+                for (let i = 0; i < dataOffset; i++) {
+                    newView.setUint8(i, dataView.getUint8(i));
+                }
+
+                let offset = dataOffset;
+                let bonesModified = 0;
+
+                for (let frame = 0; frame < framesLength; frame++) {
+                    for (let boneIdx = 0; boneIdx < boneIds.length; boneIdx++) {
+                        // Read original position
+                        const posX = this.readFloat16(dataView, offset);
+                        const posY = this.readFloat16(dataView, offset + 2);
+                        const posZ = this.readFloat16(dataView, offset + 4);
+
+                        // Double X value
+                        const newPosX = posX * 2;
+
+                        // Write back modified position
+                        this.writeFloat16(newView, offset, newPosX);
+                        this.writeFloat16(newView, offset + 2, posY);
+                        this.writeFloat16(newView, offset + 4, posZ);
+
+                        // Copy rotation data unchanged
+                        for (let i = 6; i < 12; i++) {
+                            newView.setUint8(offset + i, dataView.getUint8(offset + i));
+                        }
+
+                        offset += 12;
+                        bonesModified++;
+                    }
+
+                    // Update progress
+                    if (frame % 10 === 0) {
+                        const progress = 10 + (frame / framesLength * 80);
+                        this.updateProgress(progress);
+                    }
+                }
+
+                // Copy any remaining data
+                for (let i = offset; i < arrayBuffer.byteLength; i++) {
+                    newView.setUint8(i, dataView.getUint8(i));
+                }
+
+                this.updateProgress(100);
+                this.log(`✓ X doubling complete: ${bonesModified} bone positions modified`, 'success');
+                return newBuffer;
+            }
+
+            readFloat16(dataView, offset) {
+                const uint16 = dataView.getUint16(offset, true);
+                return this.float16ToFloat32(uint16);
+            }
+
+            float16ToFloat32(uint16) {
+                const sign = (uint16 & 0x8000) ? -1 : 1;
+                const exponent = (uint16 & 0x7C00) >> 10;
+                const fraction = uint16 & 0x03FF;
+
+                if (exponent === 0) {
+                    return sign * Math.pow(2, -14) * (fraction / 1024);
+                } else if (exponent === 0x1F) {
+                    return fraction ? NaN : sign * Infinity;
+                }
+
+                return sign * Math.pow(2, exponent - 15) * (1 + fraction / 1024);
+            }
+
+            writeFloat16(dataView, offset, value) {
+                const uint16 = this.float32ToFloat16(value);
+                dataView.setUint16(offset, uint16, true);
+            }
+
+            float32ToFloat16(value) {
+                const float32 = new Float32Array([value]);
+                const uint32 = new Uint32Array(float32.buffer)[0];
+                
+                const sign = (uint32 >> 31) & 0x1;
+                const exponent = ((uint32 >> 23) & 0xFF) - 127 + 15;
+                const fraction = (uint32 >> 13) & 0x3FF;
+
+                if (exponent <= 0) return sign << 15;
+                if (exponent >= 0x1F) return (sign << 15) | 0x7C00;
+
+                return (sign << 15) | (exponent << 10) | fraction;
+            }
+
+            // Download file with proper feedback
+            downloadFile(data, filename, contentType) {
+                try {
+                    const blob = new Blob([data], { type: contentType });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    this.log(`✓ Download started: ${filename}`, 'success');
+                    return true;
+                } catch (error) {
+                    this.log(`✗ Download failed: ${error}`, 'error');
+                    return false;
+                }
+            }
+        }
+
+        // UI Controller
+        class UIController {
+            constructor() {
+                this.processor = new AnimationProcessor();
+                this.currentFile = null;
+                this.currentAnimationData = null;
+                this.initEventListeners();
+                this.updateParametersUI();
+            }
+
+            initEventListeners() {
+                // File input
+                document.getElementById('inputFile').addEventListener('change', (e) => {
+                    this.handleFileSelect(e);
+                });
+
+                // Operation selection
+                document.getElementById('operationSelect').addEventListener('change', () => {
+                    this.updateParametersUI();
+                });
+
+                // Run button
+                document.getElementById('runButton').addEventListener('click', () => {
+                    this.runOperation();
+                });
+
+                // Settings
+                document.getElementById('settingsButton').addEventListener('click', () => {
+                    this.showSettings();
+                });
+
+                document.getElementById('saveSettings').addEventListener('click', () => {
+                    this.saveSettings();
+                });
+
+                document.getElementById('cancelSettings').addEventListener('click', () => {
+                    this.hideSettings();
+                });
+
+                // Bone selection
+                document.getElementById('selectAllBones').addEventListener('click', () => {
+                    this.toggleAllBones(true);
+                });
+
+                document.getElementById('deselectAllBones').addEventListener('click', () => {
+                    this.toggleAllBones(false);
+                });
+            }
+
+            async handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    this.currentFile = file;
+                    this.processor.log(`📁 File selected: ${file.name}`, 'info');
+                    
+                    try {
+                        const arrayBuffer = await file.arrayBuffer();
+                        this.currentAnimationData = this.processor.parseAnimationData(arrayBuffer, file.name);
+                        
+                        if (this.currentAnimationData) {
+                            this.displayFileInfo(file, this.currentAnimationData);
+                            document.getElementById('runButton').disabled = false;
+                        } else {
+                            document.getElementById('runButton').disabled = true;
+                        }
+                    } catch (error) {
+                        this.processor.log(`✗ Error reading file: ${error}`, 'error');
+                        document.getElementById('runButton').disabled = true;
+                    }
+                }
+            }
+
+            displayFileInfo(file, animationData) {
+                const fileInfo = document.getElementById('fileInfo');
+                fileInfo.style.display = 'block';
+
+                document.getElementById('infoFilename').textContent = file.name;
+                document.getElementById('infoSize').textContent = this.processor.formatFileSize(file.size);
+                document.getElementById('infoFrames').textContent = animationData.framesLength;
+                document.getElementById('infoBones').textContent = animationData.boneIdsLength;
+                document.getElementById('infoBoneIds').textContent = animationData.boneIds.join(', ');
+                document.getElementById('infoDataSize').textContent = this.processor.formatFileSize(
+                    animationData.totalSize - animationData.dataOffset
+                );
+            }
+
+            updateParametersUI() {
+                const operation = document.getElementById('operationSelect').value;
+                const container = document.getElementById('paramsContainer');
+                container.innerHTML = '';
+
+                switch (operation) {
+                    case 'SHORTEN':
+                    case 'LENGTHEN':
+                        this.createParamRow(container, 'factor', 'Factor:', '2.0');
+                        break;
+                    case 'AXIS_ADDER':
+                        this.createParamRow(container, 'x_offset', 'X Offset:', '0.0');
+                        this.createParamRow(container, 'y_offset', 'Y Offset:', '0.0');
+                        this.createParamRow(container, 'z_offset', 'Z Offset:', '0.0');
+                        this.createParamRow(container, 'bone_id', 'Bone ID (-1 for all):', '-1');
+                        break;
+                    case 'TRIMMER':
+                        this.createParamRow(container, 'range', 'Remove frames (e.g., 1-10):', '1-10');
+                        break;
+                }
+            }
+
+            createParamRow(container, id, label, placeholder) {
+                const row = document.createElement('div');
+                row.className = 'param-row';
+                
+                const labelEl = document.createElement('label');
+                labelEl.textContent = label;
+                
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.id = `param_${id}`;
+                input.placeholder = placeholder;
+                input.value = placeholder;
+                
+                row.appendChild(labelEl);
+                row.appendChild(input);
+                container.appendChild(row);
+            }
+
+            getOperationParams() {
+                const operation = document.getElementById('operationSelect').value;
+                const params = { operation };
+                
+                const paramInputs = document.querySelectorAll('#paramsContainer input');
+                paramInputs.forEach(input => {
+                    const paramName = input.id.replace('param_', '');
+                    params[paramName] = input.value;
+                });
+
+                return params;
+            }
+
+            async runOperation() {
+                if (!this.currentFile || !this.currentAnimationData) {
+                    this.processor.log('✗ Error: Please select a valid animation file first.', 'error');
+                    return;
+                }
+
+                this.processor.clearLog();
+                this.processor.log('🚀 Starting operation...', 'info');
+
+                try {
+                    const params = this.getOperationParams();
+                    const exportExt = document.getElementById('exportExt').value;
+
+                    let result;
+                    let outputFilename;
+
+                    switch (params.operation) {
+                        case 'EXTRACT_CSV':
+                            const csvData = this.processor.extractCSV(this.currentAnimationData);
+                            const csvContent = csvData.map(row => row.join(',')).join('\n');
+                            outputFilename = `${this.currentFile.name.replace(/\.[^/.]+$/, "")}_extracted.csv`;
+                            this.processor.downloadFile(csvContent, outputFilename, 'text/csv');
+                            break;
+
+                        case 'X_DOUBLE':
+                            const modifiedBuffer = this.processor.doubleX(this.currentAnimationData);
+                            outputFilename = `${this.currentFile.name.replace(/\.[^/.]+$/, "")}_x_doubled${exportExt}`;
+                            this.processor.downloadFile(modifiedBuffer, outputFilename, 'application/octet-stream');
+                            break;
+
+                        default:
+                            this.processor.log(`⚠️ Operation "${params.operation}" not fully implemented in this demo`, 'warning');
+                            this.processor.log('Only EXTRACT_CSV and X_DOUBLE are currently available', 'info');
+                            break;
+                    }
+
+                    this.processor.updateProgress(0);
+
+                } catch (error) {
+                    this.processor.log(`✗ Operation failed: ${error}`, 'error');
+                    this.processor.updateProgress(0);
+                }
+            }
+
+            showSettings() {
+                document.getElementById('settingsModal').style.display = 'block';
+            }
+
+            hideSettings() {
+                document.getElementById('settingsModal').style.display = 'none';
+            }
+
+            saveSettings() {
+                const exportExt = document.getElementById('exportExt').value;
+                localStorage.setItem('animationTool_exportExt', exportExt);
+                this.hideSettings();
+                this.processor.log('✓ Settings saved', 'success');
+            }
+
+            loadSettings() {
+                const savedExportExt = localStorage.getItem('animationTool_exportExt');
+                if (savedExportExt) {
+                    document.getElementById('exportExt').value = savedExportExt;
+                }
+            }
+
+            toggleAllBones(select) {
+                const checkboxes = document.querySelectorAll('#boneList input[type="checkbox"]');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = select;
+                });
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            const uiController = new UIController();
+            uiController.loadSettings();
+        });
+    </script>
+</body>
+</html>
