@@ -9,11 +9,11 @@ def run_web_operation(cli_args):
     web_logger("--- Python Processor Starting ---")
     
     try:
-        # Import the main function directly
-        from animation_decrypter_2 import main as core_logic
+        # Import the main function directly - FIXED IMPORT
+        from animation_decrypter_2 import main
         
         # Run the operation and capture output
-        result = core_logic(cli_args=cli_args, logger=web_logger)
+        result = main(cli_args=cli_args, logger=web_logger)
         
         web_logger("--- PROCESSING COMPLETE ---")
         
