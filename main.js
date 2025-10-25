@@ -409,6 +409,8 @@ web_logger("Python environment ready")
             
             let downloadedCount = 0;
             
+            this.log("Scanning for output files...");
+            
             for (const file of files) {
                 // Skip directories and input files
                 if (file === '.' || file === '..' || inputFiles.has(file)) continue;
@@ -416,23 +418,31 @@ web_logger("Python environment ready")
                 // Check if it's an output file (based on extensions)
                 if (file.endsWith('.bytes') || file.endsWith('.txt') || file.endsWith('.csv')) {
                     try {
-                        // Skip files that look like they might be inputs
-                        if (file.includes('ORIGINAL') && !file.includes('MODIFIED')) continue;
-                        
                         const stats = pyodide.FS.stat(`./${file}`);
                         if (stats.size > 0) {
+                            this.log(`Found output file: ${file} (${stats.size} bytes)`);
                             this.downloadVFSFile(file);
                             downloadedCount++;
-                            this.log(`Downloaded: ${file} (${stats.size} bytes)`);
+                            this.log(`Downloaded: ${file}`);
                         }
                     } catch (e) {
-                        this.log(`Error downloading ${file}: ${e}`);
+                        this.log(`Error with file ${file}: ${e}`);
                     }
                 }
             }
             
             if (downloadedCount === 0) {
-                this.log("No output files were generated. Check the log for errors.");
+                this.log("No output files found. Listing all files in VFS:");
+                for (const file of files) {
+                    if (file !== '.' && file !== '..') {
+                        try {
+                            const stats = pyodide.FS.stat(`./${file}`);
+                            this.log(`- ${file} (${stats.size} bytes)`);
+                        } catch (e) {
+                            this.log(`- ${file} (error getting stats)`);
+                        }
+                    }
+                }
             }
             
         } catch (error) {
