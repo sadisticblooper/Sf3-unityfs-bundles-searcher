@@ -1,36 +1,36 @@
-# runner_web.py - SIMPLE WORKING VERSION
+# runner_web.py - ULTRA SIMPLE TEST
 def web_logger(message):
     print(message)
 
 def run_web_operation(cli_args):
-    web_logger("--- Python Processor Starting ---")
+    web_logger("=== PYTHON CODE IS RUNNING ===")
+    web_logger(f"Operation: {cli_args.get('selected_operation')}")
     
-    try:
-        web_logger("=== Running animation operation ===")
-        
-        # Get the main function directly from globals
-        if 'main' not in globals():
-            web_logger("ERROR: main function not found in globals")
-            return "ERROR: main function not found"
-        
-        # Run the main function
-        main(cli_args=cli_args, logger=web_logger)
-        
-        web_logger("=== Checking results ===")
-        import os
-        files = os.listdir('.')
-        web_logger(f"Files in VFS: {files}")
-        
-        input_file = cli_args.get('file_path')
-        if input_file:
-            output_files = [f for f in files if f != input_file and (f.endswith('.bytes') or f.endswith('.txt') or f.endswith('.csv'))]
-            web_logger(f"Output files: {output_files}")
-        
-        web_logger("--- PROCESSING COMPLETE ---")
-        return "SUCCESS"
-        
-    except Exception as e:
-        web_logger(f"ERROR: {e}")
-        import traceback
-        web_logger(traceback.format_exc())
-        return f"ERROR: {str(e)}"
+    # Force create output files
+    web_logger("=== CREATING TEST FILES ===")
+    
+    with open('TEST1.bytes', 'wb') as f:
+        f.write(b'TEST_FILE_1')
+    web_logger("Created TEST1.bytes")
+    
+    with open('TEST2.txt', 'w') as f:
+        f.write("Test file 2")
+    web_logger("Created TEST2.txt")
+    
+    # Try to modify the input file
+    input_file = cli_args.get('file_path')
+    if input_file:
+        try:
+            with open(input_file, 'rb') as f:
+                data = f.read()
+            web_logger(f"Read input file: {len(data)} bytes")
+            
+            output_name = f"OUTPUT_{input_file}"
+            with open(output_name, 'wb') as f:
+                f.write(data)
+            web_logger(f"Created {output_name}")
+        except Exception as e:
+            web_logger(f"Error with input file: {e}")
+    
+    web_logger("=== PYTHON COMPLETE ===")
+    return "SUCCESS"
