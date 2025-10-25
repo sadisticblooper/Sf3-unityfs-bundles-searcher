@@ -1,6 +1,6 @@
-import os
-from animation_decrypter_2 import main as core_logic
-from user_pref import load_preferences
+# runner_web.py - FIXED VERSION
+import io
+import struct
 
 def web_logger(message):
     print(message)
@@ -8,15 +8,20 @@ def web_logger(message):
 def run_web_operation(cli_args):
     web_logger("--- Python Processor Starting ---")
     
-    prefs = load_preferences()
-    cli_args['export_extension'] = prefs.get('export_ext', '.bytes')
-    
     try:
-        final_output_path = core_logic(cli_args=cli_args, logger=web_logger)
+        # Import the main function directly
+        from animation_decrypter_2 import main as core_logic
+        
+        # Run the operation and capture output
+        result = core_logic(cli_args=cli_args, logger=web_logger)
+        
         web_logger("--- PROCESSING COMPLETE ---")
-        return final_output_path
+        
+        # Return success status
+        return "SUCCESS"
+        
     except Exception as e:
         web_logger(f"ERROR: {e}")
         import traceback
         web_logger(traceback.format_exc())
-        raise e
+        return f"ERROR: {str(e)}"
