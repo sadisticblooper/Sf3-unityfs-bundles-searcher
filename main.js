@@ -1,4 +1,4 @@
-// main.js - DEBUG VERSION
+// main.js - FIXED PYTHON CALL
 let pyodide = null;
 let currentBoneCheckboxes = new Map();
 
@@ -375,30 +375,18 @@ web_logger("Python environment ready")
                 }
                 this.log("✓ run_web_operation found");
                 
-                // DEBUG: List all globals to see what's available
-                const globals = pyodide.globals.toJs();
-                const funcNames = Object.keys(globals).filter(key => typeof globals[key] === 'function');
-                this.log(`Python functions available: ${funcNames.join(', ')}`);
-                
             } catch (e) {
                 this.log(`ERROR checking Python: ${e}`);
                 return;
             }
 
             this.log("=== Calling Python function ===");
+            
+            // Convert CLI args to Python object properly
             const pyArgs = pyodide.toPy(cliArgs);
-            const result = await pyodide.runPython(`
-try:
-    result = run_web_operation(${JSON.stringify(cliArgs)})
-    print("PYTHON RESULT:", result)
-    result
-except Exception as e:
-    print("PYTHON ERROR:", str(e))
-    import traceback
-    print("TRACEBACK:")
-    traceback.print_exc()
-    "ERROR: " + str(e)
-`);
+            
+            // Call the function directly instead of using runPython
+            const result = await pyodide.globals.get('run_web_operation')(pyArgs);
             
             this.log(`Operation result: ${result}`);
             
