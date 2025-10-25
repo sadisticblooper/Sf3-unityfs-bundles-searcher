@@ -1,36 +1,34 @@
-# runner_web.py - ULTRA SIMPLE TEST
+# runner_web.py - DEBUG MAIN FUNCTION
 def web_logger(message):
     print(message)
 
 def run_web_operation(cli_args):
     web_logger("=== PYTHON CODE IS RUNNING ===")
-    web_logger(f"Operation: {cli_args.get('selected_operation')}")
     
-    # Force create output files
-    web_logger("=== CREATING TEST FILES ===")
+    # Check if main function exists
+    web_logger("=== CHECKING FOR MAIN FUNCTION ===")
     
-    with open('TEST1.bytes', 'wb') as f:
-        f.write(b'TEST_FILE_1')
-    web_logger("Created TEST1.bytes")
-    
-    with open('TEST2.txt', 'w') as f:
-        f.write("Test file 2")
-    web_logger("Created TEST2.txt")
-    
-    # Try to modify the input file
-    input_file = cli_args.get('file_path')
-    if input_file:
-        try:
-            with open(input_file, 'rb') as f:
-                data = f.read()
-            web_logger(f"Read input file: {len(data)} bytes")
+    try:
+        # Try to import and call main
+        import animation_decrypter_2
+        web_logger("✓ animation_decrypter_2 imported")
+        
+        if hasattr(animation_decrypter_2, 'main'):
+            web_logger("✓ main function found")
+            web_logger("=== CALLING MAIN FUNCTION ===")
             
-            output_name = f"OUTPUT_{input_file}"
-            with open(output_name, 'wb') as f:
-                f.write(data)
-            web_logger(f"Created {output_name}")
-        except Exception as e:
-            web_logger(f"Error with input file: {e}")
+            # Call the main function
+            animation_decrypter_2.main(cli_args=cli_args, logger=web_logger)
+            
+            web_logger("=== MAIN FUNCTION COMPLETED ===")
+        else:
+            web_logger("✗ main function NOT found in animation_decrypter_2")
+            
+    except Exception as e:
+        web_logger(f"✗ Error: {e}")
+        import traceback
+        web_logger("TRACEBACK:")
+        web_logger(traceback.format_exc())
     
-    web_logger("=== PYTHON COMPLETE ===")
+    web_logger("=== RUNNER COMPLETE ===")
     return "SUCCESS"
