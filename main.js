@@ -1,5 +1,4 @@
-// main.js - Complete Vercel Implementation
-
+// main.js - FIXED VERSION
 let pyodide = null;
 let currentBoneCheckboxes = new Map();
 
@@ -147,106 +146,12 @@ web_logger("Python environment ready")
                 }
             }
             
-            // FIXED: Create a proper web version that returns the output data directly
-            const operationRunnerCode = `
-def run_web_operation(cli_args):
-    try:
-        args_dict = {}
-        for key in cli_args:
-            args_dict[key] = cli_args[key]
-        
-        web_logger(f"Running operation: {args_dict.get('selected_operation', 'UNKNOWN')}")
-        
-        if 'main' in globals():
-            # Monkey patch the file writing to capture output data
-            original_write = None
-            output_data = None
-            output_filename = None
-            
-            def capture_write(filepath, data):
-                nonlocal output_data, output_filename
-                output_data = data
-                output_filename = filepath
-                web_logger(f"Captured output: {filepath} ({len(data)} bytes)")
-                return len(data)
-            
-            # Replace file operations
-            import builtins
-            original_open = builtins.open
-            
-            def capture_open(filepath, mode='r', *args, **kwargs):
-                if 'w' in mode or 'x' in mode or 'a' in mode:
-                    web_logger(f"File write attempted: {filepath}")
-                    # Return a mock file object that captures data
-                    class MockFile:
-                        def __init__(self):
-                            self.data = b''
-                            self.closed = False
-                        
-                        def write(self, data):
-                            if isinstance(data, str):
-                                data = data.encode('utf-8')
-                            self.data += data
-                            return len(data)
-                        
-                        def close(self):
-                            nonlocal output_data, output_filename
-                            output_data = self.data
-                            output_filename = filepath
-                            web_logger(f"Captured output file: {filepath} ({len(self.data)} bytes)")
-                            self.closed = True
-                        
-                        def __enter__(self):
-                            return self
-                        
-                        def __exit__(self, *args):
-                            self.close()
-                    
-                    return MockFile()
-                else:
-                    # For reading, use the original
-                    return original_open(filepath, mode, *args, **kwargs)
-            
-            builtins.open = capture_open
-            
-            try:
-                # Run the main function
-                main(cli_args=args_dict, logger=web_logger)
-                web_logger("Main function completed")
-                
-                if output_data and output_filename:
-                    # Write the captured data to VFS
-                    import pyodide
-                    pyodide.FS.writeFile(output_filename, output_data)
-                    web_logger(f"Output written to VFS: {output_filename}")
-                    return output_filename
-                else:
-                    web_logger("No output data captured")
-                    return None
-                    
-            finally:
-                # Restore original functions
-                builtins.open = original_open
-                
-        else:
-            raise Exception("main function not found")
-            
-    except Exception as e:
-        web_logger(f"Operation error: {str(e)}")
-        import traceback
-        web_logger(traceback.format_exc())
-        raise e
-`;
-            
-            pyodide.runPython(operationRunnerCode);
-            this.log("Operation runner created");
+            this.log("All Python modules loaded");
             
         } catch (error) {
             this.log(`Failed to load Python modules: ${error}`);
             throw error;
         }
-        
-        this.log("All Python modules loaded");
     }
 
     updateParametersUI() {
@@ -456,6 +361,7 @@ def run_web_operation(cli_args):
         try {
             const cliArgs = await this.gatherCLIArguments();
             
+            // Upload files to VFS
             await this.uploadFilesToVFS();
 
             this.log(`Starting ${operation} operation...`);
@@ -466,14 +372,14 @@ def run_web_operation(cli_args):
             }
             
             const pyArgs = pyodide.toPy(cliArgs);
-            const outputFilename = await run_web_operation(pyArgs);
+            const result = await run_web_operation(pyArgs);
             
-            if (outputFilename) {
-                this.downloadVFSFile(outputFilename);
-                this.log("Operation completed successfully!");
-            } else {
-                this.log("Operation completed but no output file was returned.");
-            }
+            this.log(`Operation result: ${result}`);
+            
+            // Check for output files in VFS and download them
+            await this.downloadOutputFiles();
+            
+            this.log("Operation completed!");
 
         } catch (error) {
             this.log(`Error: ${error.message}`);
@@ -481,7 +387,56 @@ def run_web_operation(cli_args):
         } finally {
             elements.runButton.disabled = false;
             elements.runButton.textContent = "Run Operation";
-            this.cleanupVFS();
+        }
+    }
+
+    async downloadOutputFiles() {
+        try {
+            // List all files in current directory
+            const files = pyodide.FS.readdir('.');
+            const inputFiles = new Set();
+            
+            // Get input file names to exclude them
+            if (document.getElementById('inputFile').files[0]) {
+                inputFiles.add(document.getElementById('inputFile').files[0].name);
+            }
+            if (document.getElementById('splicerFile1').files[0]) {
+                inputFiles.add(document.getElementById('splicerFile1').files[0].name);
+            }
+            if (document.getElementById('splicerFile2').files[0]) {
+                inputFiles.add(document.getElementById('splicerFile2').files[0].name);
+            }
+            
+            let downloadedCount = 0;
+            
+            for (const file of files) {
+                // Skip directories and input files
+                if (file === '.' || file === '..' || inputFiles.has(file)) continue;
+                
+                // Check if it's an output file (based on extensions)
+                if (file.endsWith('.bytes') || file.endsWith('.txt') || file.endsWith('.csv')) {
+                    try {
+                        // Skip files that look like they might be inputs
+                        if (file.includes('ORIGINAL') && !file.includes('MODIFIED')) continue;
+                        
+                        const stats = pyodide.FS.stat(`./${file}`);
+                        if (stats.size > 0) {
+                            this.downloadVFSFile(file);
+                            downloadedCount++;
+                            this.log(`Downloaded: ${file} (${stats.size} bytes)`);
+                        }
+                    } catch (e) {
+                        this.log(`Error downloading ${file}: ${e}`);
+                    }
+                }
+            }
+            
+            if (downloadedCount === 0) {
+                this.log("No output files were generated. Check the log for errors.");
+            }
+            
+        } catch (error) {
+            this.log(`Error scanning for output files: ${error}`);
         }
     }
 
@@ -503,6 +458,8 @@ def run_web_operation(cli_args):
             const file2 = document.getElementById('splicerFile2').files[0];
             if (file1) args.file1 = file1.name;
             if (file2) args.file2 = file2.name;
+            args.range1 = document.getElementById('splicerRange1').value;
+            args.range2 = document.getElementById('splicerRange2').value;
         }
 
         switch(operation) {
@@ -603,22 +560,9 @@ def run_web_operation(cli_args):
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             
-            this.log(`Downloaded: ${filename}`);
         } catch (error) {
-            this.log(`Download error: ${error}`);
+            this.log(`Download error for ${filename}: ${error}`);
         }
-    }
-
-    cleanupVFS() {
-        try {
-            pyodide.FS.readdir('.').forEach(file => {
-                if (file.endsWith('.bytes') || file.endsWith('.csv') || file.endsWith('.txt')) {
-                    try {
-                        pyodide.FS.unlink(`./${file}`);
-                    } catch (e) {}
-                }
-            });
-        } catch (error) {}
     }
 }
 
