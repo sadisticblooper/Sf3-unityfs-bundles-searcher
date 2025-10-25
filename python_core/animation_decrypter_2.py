@@ -590,7 +590,7 @@ def main(cli_args=None, logger=print, get_operations=False):
         except Exception as e:
             logger(f"\nERROR: Could not write modified binary file: {e}")
             
-    logger("\nProcess complete.")
+        logger("\nProcess complete.")
 
 if __name__ == "__main__":
-    print("This is the core logic script. Please run 'runner_ui.py' to use the graphical interface.")    bone_count
+    print("This is the core logic script. Please run 'runner_ui.py' to use the graphical interface.")
