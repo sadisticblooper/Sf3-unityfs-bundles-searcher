@@ -1,7 +1,4 @@
-# runner_web.py - FIXED VERSION
-import io
-import struct
-
+# runner_web.py - SIMPLE VERSION
 def web_logger(message):
     print(message)
 
@@ -9,16 +6,18 @@ def run_web_operation(cli_args):
     web_logger("--- Python Processor Starting ---")
     
     try:
-        # Import the main function directly - FIXED IMPORT
-        from animation_decrypter_2 import main
+        # Just run the main function directly since all code is already loaded
+        web_logger("Running animation operation...")
         
-        # Run the operation and capture output
-        result = main(cli_args=cli_args, logger=web_logger)
-        
-        web_logger("--- PROCESSING COMPLETE ---")
-        
-        # Return success status
-        return "SUCCESS"
+        # The main function should already be available in global scope
+        # since animation_decrypter_2.py was loaded
+        if 'main' in globals():
+            result = main(cli_args=cli_args, logger=web_logger)
+            web_logger("--- PROCESSING COMPLETE ---")
+            return "SUCCESS"
+        else:
+            web_logger("ERROR: main function not found")
+            return "ERROR: main function not found"
         
     except Exception as e:
         web_logger(f"ERROR: {e}")
