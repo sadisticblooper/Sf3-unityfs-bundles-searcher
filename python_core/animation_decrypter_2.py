@@ -118,7 +118,7 @@ def generate_output_filename(original_filepath, operation_tag, is_binary_output=
     final_extension = export_extension if is_binary_output else '.csv'
     new_name = f"{operation_tag}_{base_name}{final_extension}"
     
-    return os.path.join(os.path.dirname(original_filepath), new_name)
+    return new_name  # Return just filename, not full path
 
 def get_decimation_params(float_factor, logger=print):
     if float_factor < 1.0:
@@ -356,7 +356,7 @@ def write_csv_file(output_filename, metadata_row, data_rows, label, logger=print
             writer.writerow(metadata_row)
             writer.writerow(["frame", "bone_id", "bone_name", "pos_x", "pos_y", "pos_z"])
             writer.writerows(data_rows)
-        logger(f"-> {label} data and header saved to: {os.path.basename(output_filename)}")
+        logger(f"-> {label} data and header saved to: {output_filename}")
         return True
     except Exception as e:
         logger(f"\nERROR: Could not write {label} CSV file: {e}")
@@ -484,12 +484,12 @@ def splicer_operation(file1_path, file2_path, range1_str, range2_str, logger=pri
         tag = f"SPLICER_{num_frames1}_{num_frames2}"
         output_filename = generate_output_filename(file1_path, tag, export_extension=export_ext)
         
-        # === CRITICAL FIX: Write to VFS instead of regular file system ===
+        # Write to VFS
         try:
             with open(output_filename, 'wb') as f:
                 f.write(final_bytes)
             logger(f"\nSplicer Complete!")
-            logger(f"Output saved to: {os.path.basename(output_filename)}")
+            logger(f"Output saved to: {output_filename}")
             
             return True
             
@@ -573,11 +573,11 @@ def main(cli_args=None, logger=print, get_operations=False):
     if success:
         output_binary_filename = generate_output_filename(file_path, tag, is_binary_output=True, export_extension=export_ext)
         try:
-            # === CRITICAL FIX: Write to VFS ===
+            # Write to VFS
             with open(output_binary_filename, 'wb') as f: 
                 f.write(final_modified_bytes)
             logger(f"\n--- Repack Complete ---")
-            logger(f"-> Modified animation saved to: {os.path.basename(output_binary_filename)}")
+            logger(f"-> Modified animation saved to: {output_binary_filename}")
             
             if cli_args.get('save_csvs', True):
                 meta_row, csv_data = extract_data_and_metadata(BytesIO(original_data_bytes))
@@ -590,7 +590,7 @@ def main(cli_args=None, logger=print, get_operations=False):
         except Exception as e:
             logger(f"\nERROR: Could not write modified binary file: {e}")
             
-        logger("\nProcess complete.")
+    logger("\nProcess complete.")
 
 if __name__ == "__main__":
     print("This is the core logic script. Please run 'runner_ui.py' to use the graphical interface.")
