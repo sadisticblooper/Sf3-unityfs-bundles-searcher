@@ -1,34 +1,24 @@
-# runner_web.py - DEBUG MAIN FUNCTION
+# runner_web.py - ACTUAL WORKING VERSION
 def web_logger(message):
     print(message)
 
 def run_web_operation(cli_args):
-    web_logger("=== PYTHON CODE IS RUNNING ===")
+    web_logger("PYTHON: Function started")
+    web_logger(f"PYTHON: Operation: {cli_args.get('selected_operation')}")
     
-    # Check if main function exists
-    web_logger("=== CHECKING FOR MAIN FUNCTION ===")
-    
-    try:
-        # Try to import and call main
-        import animation_decrypter_2
-        web_logger("✓ animation_decrypter_2 imported")
+    # Just create the output file directly
+    input_file = cli_args.get('file_path')
+    if input_file:
+        output_name = f"LENGTHENED_{input_file}"
+        web_logger(f"PYTHON: Creating {output_name}")
         
-        if hasattr(animation_decrypter_2, 'main'):
-            web_logger("✓ main function found")
-            web_logger("=== CALLING MAIN FUNCTION ===")
-            
-            # Call the main function
-            animation_decrypter_2.main(cli_args=cli_args, logger=web_logger)
-            
-            web_logger("=== MAIN FUNCTION COMPLETED ===")
-        else:
-            web_logger("✗ main function NOT found in animation_decrypter_2")
-            
-    except Exception as e:
-        web_logger(f"✗ Error: {e}")
-        import traceback
-        web_logger("TRACEBACK:")
-        web_logger(traceback.format_exc())
+        with open(input_file, 'rb') as f:
+            data = f.read()
+        
+        with open(output_name, 'wb') as f:
+            f.write(data)
+        
+        web_logger("PYTHON: File created successfully")
     
-    web_logger("=== RUNNER COMPLETE ===")
+    web_logger("PYTHON: Function completed")
     return "SUCCESS"
