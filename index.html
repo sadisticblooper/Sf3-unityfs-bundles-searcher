@@ -15,6 +15,7 @@
             --red-button-active: #A93226;
             --selection-blue: #3498DB;
             --success-green: #27AE60;
+            --warning-orange: #F39C12;
         }
 
         * {
@@ -36,7 +37,28 @@
             margin: 0 auto;
         }
 
-        /* File Info Display */
+        /* Title */
+        .title-container {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+        }
+
+        .title-char {
+            font-family: 'Impact', sans-serif;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .title-char.large {
+            font-size: 48px;
+        }
+
+        .title-char.small {
+            font-size: 24px;
+        }
+
+        /* File Info */
         .file-info {
             background: var(--bg-widget);
             padding: 15px;
@@ -72,27 +94,7 @@
             color: var(--text-light);
         }
 
-        /* Rest of your existing CSS remains the same */
-        .title-container {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 20px 0;
-        }
-
-        .title-char {
-            font-family: 'Impact', sans-serif;
-            font-weight: bold;
-            display: inline-block;
-        }
-
-        .title-char.large {
-            font-size: 48px;
-        }
-
-        .title-char.small {
-            font-size: 24px;
-        }
-
+        /* Input Groups */
         .input-group {
             background: var(--bg-widget);
             padding: 20px;
@@ -117,6 +119,7 @@
             font-size: 14px;
         }
 
+        /* Controls Panel */
         .controls-panel {
             background: var(--bg-widget);
             padding: 20px;
@@ -140,7 +143,8 @@
             min-width: 120px;
         }
 
-        .param-row input {
+        .param-row input,
+        .param-row select {
             flex: 1;
             padding: 8px;
             background: var(--bg-charcoal);
@@ -149,6 +153,7 @@
             color: var(--text-light);
         }
 
+        /* Special Panels */
         .special-panel {
             background: var(--bg-widget);
             padding: 15px;
@@ -184,6 +189,7 @@
             border-bottom: 1px solid #444;
         }
 
+        /* Action Buttons */
         .action-buttons {
             display: flex;
             gap: 10px;
@@ -226,6 +232,24 @@
             margin-left: auto;
         }
 
+        /* Progress Bar */
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #444;
+            border-radius: 2px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-orange);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* Log Area */
         .log-area {
             background: var(--bg-widget);
             padding: 20px;
@@ -257,13 +281,14 @@
         }
 
         .log-warning {
-            color: #F39C12;
+            color: var(--warning-orange);
         }
 
         .log-info {
             color: var(--selection-blue);
         }
 
+        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -314,20 +339,10 @@
             font-size: 12px;
         }
 
-        .progress-bar {
-            width: 100%;
-            height: 4px;
-            background: #444;
-            border-radius: 2px;
-            margin: 10px 0;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: var(--primary-orange);
-            width: 0%;
-            transition: width 0.3s ease;
+        .splicer-frame-info {
+            font-size: 11px;
+            color: #999;
+            margin-top: 2px;
         }
     </style>
 </head>
@@ -387,16 +402,40 @@
             <h2>2. Operation Selection</h2>
             <label for="operationSelect">Operation:</label>
             <select id="operationSelect">
-                <option value="EXTRACT_CSV">EXTRACT_CSV: Extracts animation data to CSV</option>
-                <option value="X_DOUBLE">X_DOUBLE: Doubles X-axis values</option>
-                <option value="AXIS_ADDER">AXIS_ADDER: Adds values to axis</option>
                 <option value="SHORTEN">SHORTEN: Shortens animation by a factor</option>
                 <option value="LENGTHEN">LENGTHEN: Lengthens animation by a factor</option>
+                <option value="EXTRACT_CSV">EXTRACT_CSV: Extracts animation data to CSV</option>
+                <option value="SPLICER">SPLICER: Splices two animations</option>
+                <option value="DASH">DASH: Applies dash effect</option>
+                <option value="BIRTH_LOCATION">BIRTH_LOCATION: Birth location offset</option>
+                <option value="X_DOUBLE">X_DOUBLE: Doubles X-axis values</option>
                 <option value="TRIMMER">TRIMMER: Removes frame range</option>
+                <option value="AXIS_ADDER">AXIS_ADDER: Adds values to axis</option>
+                <option value="AXIS_SCALER">AXIS_SCALER: Scales bone coordinates</option>
             </select>
 
             <!-- Dynamic Parameters -->
             <div id="paramsContainer"></div>
+        </div>
+
+        <!-- Splicer Section -->
+        <div id="splicerSection" class="special-panel" style="display: none;">
+            <h3>SPLICER Parameters</h3>
+            <div class="file-pair">
+                <div class="file-input">
+                    <label>File 1:</label>
+                    <input type="file" id="splicerFile1" accept=".bytes,.txt">
+                    <div class="splicer-frame-info" id="splicerFile1Info"></div>
+                    <input type="text" id="splicerRange1" placeholder="1-10" value="1-10">
+                </div>
+                <div class="file-input">
+                    <label>File 2:</label>
+                    <input type="file" id="splicerFile2" accept=".bytes,.txt">
+                    <div class="splicer-frame-info" id="splicerFile2Info"></div>
+                    <input type="text" id="splicerRange2" placeholder="1-10" value="1-10">
+                </div>
+            </div>
+            <p class="note">Files must have identical bone structures</p>
         </div>
 
         <!-- Bone Selection -->
@@ -450,7 +489,7 @@
     </div>
 
     <script>
-        // Bone mapping (extended)
+        // Bone mapping
         const BONE_MAP = {
             0: "pelvis", 1: "stomach", 2: "chest", 3: "neck", 4: "head", 5: "hair", 6: "hair1",
             7: "zero_joint_hand_l", 8: "clavicle_l", 9: "arm_l", 10: "forearm_l",
@@ -465,6 +504,8 @@
             57: "biceps_twist_l", 58: "biceps_twist_r", 59: "thigh_twist_l", 60: "thigh_twist_r",
             61: "foot_r_extra", 62: "toe_r_extra", 63: "weapon_r_extra", 64: "weapon_l_extra", 65: "root_extra",
         };
+
+        const EXPECTED_HEADER = 457546134634734n;
 
         // Animation Processor
         class AnimationProcessor {
@@ -495,72 +536,6 @@
                 }
             }
 
-            // Parse binary animation data with detailed info
-            parseAnimationData(arrayBuffer, filename) {
-                try {
-                    const dataView = new DataView(arrayBuffer);
-                    let offset = 0;
-
-                    this.log(`Parsing file: ${filename}`, 'info');
-                    this.log(`File size: ${this.formatFileSize(arrayBuffer.byteLength)}`, 'info');
-
-                    // Read header
-                    const header = dataView.getBigUint64(offset, true);
-                    offset += 8;
-
-                    if (header !== 457546134634734n) {
-                        this.log('Warning: Unexpected file header', 'warning');
-                    }
-
-                    // Read garbage size
-                    const garbageSize = dataView.getInt16(offset, true);
-                    offset += 2;
-
-                    // Skip garbage data
-                    const garbageDataSize = garbageSize * 8;
-                    offset += garbageDataSize;
-
-                    // Read frame count
-                    const framesLength = dataView.getInt32(offset, true);
-                    offset += 4;
-
-                    // Read bone count
-                    const boneIdsLength = dataView.getInt32(offset, true);
-                    offset += 4;
-
-                    // Read bone IDs
-                    const boneIds = [];
-                    for (let i = 0; i < boneIdsLength; i++) {
-                        boneIds.push(dataView.getInt16(offset, true));
-                        offset += 2;
-                    }
-
-                    const fileInfo = {
-                        header,
-                        framesLength,
-                        boneIds,
-                        boneIdsLength,
-                        garbageSize,
-                        dataOffset: offset,
-                        arrayBuffer,
-                        dataView,
-                        totalSize: arrayBuffer.byteLength
-                    };
-
-                    this.log(`✓ File parsed successfully`, 'success');
-                    this.log(`• Frames: ${framesLength}`, 'info');
-                    this.log(`• Bones: ${boneIdsLength}`, 'info');
-                    this.log(`• Bone IDs: [${boneIds.join(', ')}]`, 'info');
-                    this.log(`• Animation data starts at byte: ${offset}`, 'info');
-
-                    return fileInfo;
-
-                } catch (error) {
-                    this.log(`✗ Error parsing animation data: ${error}`, 'error');
-                    return null;
-                }
-            }
-
             formatFileSize(bytes) {
                 if (bytes === 0) return '0 Bytes';
                 const k = 1024;
@@ -569,113 +544,94 @@
                 return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
             }
 
-            // Extract CSV from animation data
-            extractCSV(animationData) {
-                const { framesLength, boneIds, dataView, dataOffset } = animationData;
-                let offset = dataOffset;
-                const csvRows = [];
+            // Core parsing function
+            parseHeaderMetadata(dataView) {
+                let offset = 0;
 
-                this.log('Starting CSV extraction...', 'info');
-                this.updateProgress(10);
+                // Read header
+                if (dataView.byteLength < 8) return null;
+                const header = dataView.getBigUint64(offset, true);
+                offset += 8;
 
-                // Add header
-                csvRows.push(['frame', 'bone_id', 'bone_name', 'pos_x', 'pos_y', 'pos_z']);
-
-                for (let frame = 0; frame < framesLength; frame++) {
-                    for (let boneIdx = 0; boneIdx < boneIds.length; boneIdx++) {
-                        // Read position data
-                        const posX = this.readFloat16(dataView, offset);
-                        const posY = this.readFloat16(dataView, offset + 2);
-                        const posZ = this.readFloat16(dataView, offset + 4);
-                        
-                        const boneId = boneIds[boneIdx];
-                        const boneName = BONE_MAP[boneId] || `Bone_${boneId}`;
-                        
-                        csvRows.push([
-                            frame + 1,
-                            boneId,
-                            boneName,
-                            posX.toFixed(6),
-                            posY.toFixed(6),
-                            posZ.toFixed(6)
-                        ]);
-
-                        offset += 12;
-                    }
-
-                    // Update progress
-                    if (frame % 10 === 0) {
-                        const progress = 10 + (frame / framesLength * 80);
-                        this.updateProgress(progress);
-                    }
+                if (header !== EXPECTED_HEADER) {
+                    this.log('Warning: Unexpected file header', 'warning');
                 }
 
-                this.updateProgress(100);
-                this.log(`✓ CSV extraction complete: ${csvRows.length - 1} data rows`, 'success');
-                return csvRows;
+                // Read garbage size
+                if (dataView.byteLength < offset + 2) return null;
+                const garbageSize = dataView.getInt16(offset, true);
+                offset += 2;
+
+                // Skip garbage data
+                const garbageDataSize = garbageSize * 8;
+                if (dataView.byteLength < offset + garbageDataSize) return null;
+                offset += garbageDataSize;
+
+                // Read frame count
+                if (dataView.byteLength < offset + 4) return null;
+                const framesLength = dataView.getInt32(offset, true);
+                offset += 4;
+
+                // Read bone count
+                if (dataView.byteLength < offset + 4) return null;
+                const boneIdsLength = dataView.getInt32(offset, true);
+                offset += 4;
+
+                // Read bone IDs
+                if (dataView.byteLength < offset + boneIdsLength * 2) return null;
+                const boneIds = [];
+                for (let i = 0; i < boneIdsLength; i++) {
+                    boneIds.push(dataView.getInt16(offset, true));
+                    offset += 2;
+                }
+
+                return {
+                    header,
+                    framesLength,
+                    boneIds,
+                    boneIdsLength,
+                    garbageSize,
+                    dataOffset: offset,
+                    totalSize: dataView.byteLength
+                };
             }
 
-            // Double X values operation
-            doubleX(animationData) {
-                const { framesLength, boneIds, dataView, dataOffset, arrayBuffer } = animationData;
-                const newBuffer = new ArrayBuffer(arrayBuffer.byteLength);
-                const newView = new DataView(newBuffer);
-
-                this.log('Starting X doubling operation...', 'info');
-                this.updateProgress(10);
-
-                // Copy header and metadata
-                for (let i = 0; i < dataOffset; i++) {
-                    newView.setUint8(i, dataView.getUint8(i));
-                }
-
-                let offset = dataOffset;
-                let bonesModified = 0;
-
-                for (let frame = 0; frame < framesLength; frame++) {
-                    for (let boneIdx = 0; boneIdx < boneIds.length; boneIdx++) {
-                        // Read original position
-                        const posX = this.readFloat16(dataView, offset);
-                        const posY = this.readFloat16(dataView, offset + 2);
-                        const posZ = this.readFloat16(dataView, offset + 4);
-
-                        // Double X value
-                        const newPosX = posX * 2;
-
-                        // Write back modified position
-                        this.writeFloat16(newView, offset, newPosX);
-                        this.writeFloat16(newView, offset + 2, posY);
-                        this.writeFloat16(newView, offset + 4, posZ);
-
-                        // Copy rotation data unchanged
-                        for (let i = 6; i < 12; i++) {
-                            newView.setUint8(offset + i, dataView.getUint8(offset + i));
-                        }
-
-                        offset += 12;
-                        bonesModified++;
+            parseAnimationData(arrayBuffer, filename) {
+                try {
+                    const dataView = new DataView(arrayBuffer);
+                    const metadata = this.parseHeaderMetadata(dataView);
+                    
+                    if (!metadata) {
+                        this.log('✗ Error: Invalid file format or corrupted data', 'error');
+                        return null;
                     }
 
-                    // Update progress
-                    if (frame % 10 === 0) {
-                        const progress = 10 + (frame / framesLength * 80);
-                        this.updateProgress(progress);
-                    }
-                }
+                    this.log(`✓ File parsed successfully: ${filename}`, 'success');
+                    this.log(`• Frames: ${metadata.framesLength}`, 'info');
+                    this.log(`• Bones: ${metadata.boneIdsLength}`, 'info');
+                    this.log(`• Bone IDs: [${metadata.boneIds.join(', ')}]`, 'info');
 
-                // Copy any remaining data
-                for (let i = offset; i < arrayBuffer.byteLength; i++) {
-                    newView.setUint8(i, dataView.getUint8(i));
-                }
+                    return {
+                        ...metadata,
+                        arrayBuffer,
+                        dataView
+                    };
 
-                this.updateProgress(100);
-                this.log(`✓ X doubling complete: ${bonesModified} bone positions modified`, 'success');
-                return newBuffer;
+                } catch (error) {
+                    this.log(`✗ Error parsing animation data: ${error}`, 'error');
+                    return null;
+                }
             }
 
+            // Float16 conversion functions
             readFloat16(dataView, offset) {
                 const uint16 = dataView.getUint16(offset, true);
                 return this.float16ToFloat32(uint16);
+            }
+
+            writeFloat16(dataView, offset, value) {
+                const uint16 = this.float32ToFloat16(value);
+                dataView.setUint16(offset, uint16, true);
             }
 
             float16ToFloat32(uint16) {
@@ -692,26 +648,608 @@
                 return sign * Math.pow(2, exponent - 15) * (1 + fraction / 1024);
             }
 
-            writeFloat16(dataView, offset, value) {
-                const uint16 = this.float32ToFloat16(value);
-                dataView.setUint16(offset, uint16, true);
-            }
-
             float32ToFloat16(value) {
                 const float32 = new Float32Array([value]);
                 const uint32 = new Uint32Array(float32.buffer)[0];
                 
                 const sign = (uint32 >> 31) & 0x1;
-                const exponent = ((uint32 >> 23) & 0xFF) - 127 + 15;
+                let exponent = ((uint32 >> 23) & 0xFF) - 127;
                 const fraction = (uint32 >> 13) & 0x3FF;
 
-                if (exponent <= 0) return sign << 15;
-                if (exponent >= 0x1F) return (sign << 15) | 0x7C00;
+                // Handle edge cases
+                if (exponent > 15) {
+                    return (sign << 15) | 0x7C00; // Infinity
+                }
+                if (exponent < -14) {
+                    return (sign << 15); // Zero (subnormal becomes zero)
+                }
 
+                exponent += 15;
                 return (sign << 15) | (exponent << 10) | fraction;
             }
 
-            // Download file with proper feedback
+            // Process bone data with modifier
+            processBoneData(boneData, modifier = null) {
+                if (boneData.length < 12) return null;
+
+                const posX = this.readFloat16(boneData, 0);
+                const posY = this.readFloat16(boneData, 2);
+                const posZ = this.readFloat16(boneData, 4);
+
+                let newPos = [posX, posY, posZ];
+                if (modifier) {
+                    newPos = modifier(newPos);
+                }
+
+                const newBuffer = new ArrayBuffer(12);
+                const newView = new DataView(newBuffer);
+                
+                this.writeFloat16(newView, 0, newPos[0]);
+                this.writeFloat16(newView, 2, newPos[1]);
+                this.writeFloat16(newView, 4, newPos[2]);
+                
+                // Copy rotation data unchanged
+                for (let i = 6; i < 12; i++) {
+                    newView.setUint8(i, boneData.getUint8(i));
+                }
+
+                return newBuffer;
+            }
+
+            // Operation implementations
+            shortenAnimation(animationData, factorN, factorD) {
+                const { framesLength, boneIds, dataView, dataOffset } = animationData;
+                const boneCount = boneIds.length;
+                const frameSize = boneCount * 12;
+                
+                let newFramesLength = 0;
+                const outputChunks = [];
+
+                this.log(`Shortening: keep ${factorD} of every ${factorN} frames`, 'info');
+
+                for (let frameId = 0; frameId < framesLength; frameId++) {
+                    const keepFrame = ((frameId % factorN) < factorD);
+                    
+                    if (keepFrame) {
+                        const frameOffset = dataOffset + (frameId * frameSize);
+                        const frameData = dataView.buffer.slice(frameOffset, frameOffset + frameSize);
+                        outputChunks.push(frameData);
+                        newFramesLength++;
+                    }
+
+                    // Update progress
+                    if (frameId % 10 === 0) {
+                        const progress = (frameId / framesLength) * 80;
+                        this.updateProgress(10 + progress);
+                    }
+                }
+
+                this.updateProgress(90);
+                return { newFramesLength, data: this.concatArrayBuffers(outputChunks) };
+            }
+
+            lengthenAnimation(animationData, factor) {
+                const { framesLength, boneIds, dataView, dataOffset } = animationData;
+                const boneCount = boneIds.length;
+                const frameSize = boneCount * 12;
+                
+                const outputChunks = [];
+
+                this.log(`Lengthening: duplicate each frame ${factor} times`, 'info');
+
+                for (let frameId = 0; frameId < framesLength; frameId++) {
+                    const frameOffset = dataOffset + (frameId * frameSize);
+                    const frameData = dataView.buffer.slice(frameOffset, frameOffset + frameSize);
+                    
+                    for (let i = 0; i < factor; i++) {
+                        outputChunks.push(frameData);
+                    }
+
+                    // Update progress
+                    if (frameId % 10 === 0) {
+                        const progress = (frameId / framesLength) * 80;
+                        this.updateProgress(10 + progress);
+                    }
+                }
+
+                this.updateProgress(90);
+                return { newFramesLength: framesLength * factor, data: this.concatArrayBuffers(outputChunks) };
+            }
+
+            xDoubleAnimation(animationData) {
+                const { framesLength, boneIds, dataView, dataOffset } = animationData;
+                const boneCount = boneIds.length;
+                const frameSize = boneCount * 12;
+                
+                const outputChunks = [];
+
+                this.log('Doubling X coordinates for all bones', 'info');
+
+                for (let frameId = 0; frameId < framesLength; frameId++) {
+                    const frameOffset = dataOffset + (frameId * frameSize);
+                    const frameBuffer = new ArrayBuffer(frameSize);
+                    const frameView = new DataView(frameBuffer);
+
+                    for (let boneIdx = 0; boneIdx < boneCount; boneIdx++) {
+                        const boneOffset = frameOffset + (boneIdx * 12);
+                        
+                        // Double X coordinate
+                        const posX = this.readFloat16(dataView, boneOffset) * 2;
+                        const posY = this.readFloat16(dataView, boneOffset + 2);
+                        const posZ = this.readFloat16(dataView, boneOffset + 4);
+
+                        const boneViewOffset = boneIdx * 12;
+                        this.writeFloat16(frameView, boneViewOffset, posX);
+                        this.writeFloat16(frameView, boneViewOffset + 2, posY);
+                        this.writeFloat16(frameView, boneViewOffset + 4, posZ);
+
+                        // Copy rotation data
+                        for (let i = 6; i < 12; i++) {
+                            frameView.setUint8(boneViewOffset + i, dataView.getUint8(boneOffset + i));
+                        }
+                    }
+
+                    outputChunks.push(frameBuffer);
+
+                    // Update progress
+                    if (frameId % 10 === 0) {
+                        const progress = (frameId / framesLength) * 80;
+                        this.updateProgress(10 + progress);
+                    }
+                }
+
+                this.updateProgress(90);
+                return { newFramesLength: framesLength, data: this.concatArrayBuffers(outputChunks) };
+            }
+
+            dashAnimation(animationData, offsetFactor, directionSign) {
+                const { framesLength, boneIds, dataView, dataOffset } = animationData;
+                const boneCount = boneIds.length;
+                const frameSize = boneCount * 12;
+                const maxFrameIndex = framesLength - 1;
+                
+                const outputChunks = [];
+                const pelvisIndex = boneIds.indexOf(0);
+
+                this.log(`Applying dash: offset=${offsetFactor}, direction=${directionSign > 0 ? 'Towards' : 'Away'}`, 'info');
+
+                for (let frameId = 0; frameId < framesLength; frameId++) {
+                    const currentOffset = (maxFrameIndex - frameId) * offsetFactor * directionSign;
+                    const frameOffset = dataOffset + (frameId * frameSize);
+                    const frameBuffer = new ArrayBuffer(frameSize);
+                    const frameView = new DataView(frameBuffer);
+
+                    for (let boneIdx = 0; boneIdx < boneCount; boneIdx++) {
+                        const boneOffset = frameOffset + (boneIdx * 12);
+                        let posX = this.readFloat16(dataView, boneOffset);
+                        let posY = this.readFloat16(dataView, boneOffset + 2);
+                        let posZ = this.readFloat16(dataView, boneOffset + 4);
+
+                        // Apply offset only to pelvis (bone ID 0)
+                        if (boneIds[boneIdx] === 0) {
+                            posX += currentOffset;
+                        }
+
+                        const boneViewOffset = boneIdx * 12;
+                        this.writeFloat16(frameView, boneViewOffset, posX);
+                        this.writeFloat16(frameView, boneViewOffset + 2, posY);
+                        this.writeFloat16(frameView, boneViewOffset + 4, posZ);
+
+                        // Copy rotation data
+                        for (let i = 6; i < 12; i++) {
+                            frameView.setUint8(boneViewOffset + i, dataView.getUint8(boneOffset + i));
+                        }
+                    }
+
+                    outputChunks.push(frameBuffer);
+
+                    // Update progress
+                    if (frameId % 10 === 0) {
+                        const progress = (frameId / framesLength) * 80;
+                        this.updateProgress(10 + progress);
+                    }
+                }
+
+                this.updateProgress(90);
+                return { newFramesLength: framesLength, data: this.concatArrayBuffers(outputChunks) };
+            }
+
+            birthLocationAnimation(animationData, totalOffset, directionSign) {
+                const { framesLength, boneIds, dataView, dataOffset } = animationData;
+                const boneCount = boneIds.length;
+                const frameSize = boneCount * 12;
+                const RAMP_UP_DURATION = 30;
+                const effectiveRampFrames = Math.min(RAMP_UP_DURATION, framesLength);
+                const lerpDivisor = effectiveRampFrames > 1 ? effectiveRampFrames - 1 : 1;
+                const finalSignedOffset = totalOffset * directionSign;
+                
+                // Get initial pelvis X
+                const pelvisIndex = boneIds.indexOf(0);
+                const initialPelvisX = pelvisIndex >= 0 ? 
+                    this.readFloat16(dataView, dataOffset + (pelvisIndex * 12)) : 0;
+
+                const outputChunks = [];
+
+                this.log(`Birth location: total offset=${totalOffset}, direction=${directionSign > 0 ? 'Towards' : 'Away'}`, 'info');
+
+                for (let frameId = 0; frameId < framesLength; frameId++) {
+                    let currentOffset = 0.0;
+                    if (frameId < effectiveRampFrames) {
+                        const t = frameId / lerpDivisor;
+                        currentOffset = finalSignedOffset * t;
+                    } else {
+                        currentOffset = finalSignedOffset;
+                    }
+
+                    const frameOffset = dataOffset + (frameId * frameSize);
+                    const frameBuffer = new ArrayBuffer(frameSize);
+                    const frameView = new DataView(frameBuffer);
+
+                    for (let boneIdx = 0; boneIdx < boneCount; boneIdx++) {
+                        const boneOffset = frameOffset + (boneIdx * 12);
+                        let posX = this.readFloat16(dataView, boneOffset);
+                        let posY = this.readFloat16(dataView, boneOffset + 2);
+                        let posZ = this.readFloat16(dataView, boneOffset + 4);
+
+                        // Apply to pelvis only
+                        if (boneIds[boneIdx] === 0) {
+                            posX = initialPelvisX + currentOffset;
+                        }
+
+                        const boneViewOffset = boneIdx * 12;
+                        this.writeFloat16(frameView, boneViewOffset, posX);
+                        this.writeFloat16(frameView, boneViewOffset + 2, posY);
+                        this.writeFloat16(frameView, boneViewOffset + 4, posZ);
+
+                        // Copy rotation data
+                        for (let i = 6; i < 12; i++) {
+                            frameView.setUint8(boneViewOffset + i, dataView.getUint8(boneOffset + i));
+                        }
+                    }
+
+                    outputChunks.push(frameBuffer);
+
+                    // Update progress
+                    if (frameId % 10 === 0) {
+                        const progress = (frameId / framesLength) * 80;
+                        this.updateProgress(10 + progress);
+                    }
+                }
+
+                this.updateProgress(90);
+                return { newFramesLength: framesLength, data: this.concatArrayBuffers(outputChunks) };
+            }
+
+            trimmerAnimation(animationData, startFrame, endFrame) {
+                const { framesLength, boneIds, dataView, dataOffset } = animationData;
+                const boneCount = boneIds.length;
+                const frameSize = boneCount * 12;
+                
+                let newFramesLength = 0;
+                const outputChunks = [];
+
+                this.log(`Trimming: removing frames ${startFrame + 1} to ${endFrame + 1}`, 'info');
+
+                for (let frameId = 0; frameId < framesLength; frameId++) {
+                    if (frameId >= startFrame && frameId <= endFrame) {
+                        continue;
+                    }
+
+                    const frameOffset = dataOffset + (frameId * frameSize);
+                    const frameData = dataView.buffer.slice(frameOffset, frameOffset + frameSize);
+                    outputChunks.push(frameData);
+                    newFramesLength++;
+
+                    // Update progress
+                    if (frameId % 10 === 0) {
+                        const progress = (frameId / framesLength) * 80;
+                        this.updateProgress(10 + progress);
+                    }
+                }
+
+                this.updateProgress(90);
+                return { newFramesLength, data: this.concatArrayBuffers(outputChunks) };
+            }
+
+            axisAdderAnimation(animationData, xOffset, yOffset, zOffset, boneId) {
+                const { framesLength, boneIds, dataView, dataOffset } = animationData;
+                const boneCount = boneIds.length;
+                const frameSize = boneCount * 12;
+                
+                const outputChunks = [];
+
+                this.log(`Axis adder: X=${xOffset}, Y=${yOffset}, Z=${zOffset}, Bone=${boneId}`, 'info');
+
+                for (let frameId = 0; frameId < framesLength; frameId++) {
+                    const frameOffset = dataOffset + (frameId * frameSize);
+                    const frameBuffer = new ArrayBuffer(frameSize);
+                    const frameView = new DataView(frameBuffer);
+
+                    for (let boneIdx = 0; boneIdx < boneCount; boneIdx++) {
+                        const boneOffset = frameOffset + (boneIdx * 12);
+                        let posX = this.readFloat16(dataView, boneOffset);
+                        let posY = this.readFloat16(dataView, boneOffset + 2);
+                        let posZ = this.readFloat16(dataView, boneOffset + 4);
+
+                        // Apply if bone matches or if boneId is -1 (all bones)
+                        if (boneId === -1 || boneIds[boneIdx] === parseInt(boneId)) {
+                            posX += parseFloat(xOffset);
+                            posY += parseFloat(yOffset);
+                            posZ += parseFloat(zOffset);
+                        }
+
+                        const boneViewOffset = boneIdx * 12;
+                        this.writeFloat16(frameView, boneViewOffset, posX);
+                        this.writeFloat16(frameView, boneViewOffset + 2, posY);
+                        this.writeFloat16(frameView, boneViewOffset + 4, posZ);
+
+                        // Copy rotation data
+                        for (let i = 6; i < 12; i++) {
+                            frameView.setUint8(boneViewOffset + i, dataView.getUint8(boneOffset + i));
+                        }
+                    }
+
+                    outputChunks.push(frameBuffer);
+
+                    // Update progress
+                    if (frameId % 10 === 0) {
+                        const progress = (frameId / framesLength) * 80;
+                        this.updateProgress(10 + progress);
+                    }
+                }
+
+                this.updateProgress(90);
+                return { newFramesLength: framesLength, data: this.concatArrayBuffers(outputChunks) };
+            }
+
+            axisScalerAnimation(animationData, scaleFactor, targetBoneIds) {
+                const { framesLength, boneIds, dataView, dataOffset } = animationData;
+                const boneCount = boneIds.length;
+                const frameSize = boneCount * 12;
+                const PROGRESSIVE_FRAMES = 10;
+                const progressiveFrames = Math.min(PROGRESSIVE_FRAMES, framesLength);
+                
+                // Calculate progressive scale factors
+                const progressiveFactors = [];
+                for (let frameIdx = 0; frameIdx < framesLength; frameIdx++) {
+                    if (frameIdx < progressiveFrames && progressiveFrames > 1) {
+                        const t = frameIdx / (progressiveFrames - 1);
+                        progressiveFactors.push(1.0 + (scaleFactor - 1.0) * t);
+                    } else {
+                        progressiveFactors.push(scaleFactor);
+                    }
+                }
+
+                const outputChunks = [];
+
+                this.log(`Axis scaler: factor=${scaleFactor}, bones=${targetBoneIds.length > 0 ? targetBoneIds.join(',') : 'all'}`, 'info');
+
+                for (let frameId = 0; frameId < framesLength; frameId++) {
+                    const currentScale = progressiveFactors[frameId];
+                    const frameOffset = dataOffset + (frameId * frameSize);
+                    const frameBuffer = new ArrayBuffer(frameSize);
+                    const frameView = new DataView(frameBuffer);
+
+                    for (let boneIdx = 0; boneIdx < boneCount; boneIdx++) {
+                        const boneOffset = frameOffset + (boneIdx * 12);
+                        let posX = this.readFloat16(dataView, boneOffset);
+                        let posY = this.readFloat16(dataView, boneOffset + 2);
+                        let posZ = this.readFloat16(dataView, boneOffset + 4);
+
+                        // Apply scaling if bone is in target list or if list is empty (all bones)
+                        if (targetBoneIds.length === 0 || targetBoneIds.includes(boneIds[boneIdx])) {
+                            posX *= currentScale;
+                            posY *= currentScale;
+                            posZ *= currentScale;
+                        }
+
+                        const boneViewOffset = boneIdx * 12;
+                        this.writeFloat16(frameView, boneViewOffset, posX);
+                        this.writeFloat16(frameView, boneViewOffset + 2, posY);
+                        this.writeFloat16(frameView, boneViewOffset + 4, posZ);
+
+                        // Copy rotation data
+                        for (let i = 6; i < 12; i++) {
+                            frameView.setUint8(boneViewOffset + i, dataView.getUint8(boneOffset + i));
+                        }
+                    }
+
+                    outputChunks.push(frameBuffer);
+
+                    // Update progress
+                    if (frameId % 10 === 0) {
+                        const progress = (frameId / framesLength) * 80;
+                        this.updateProgress(10 + progress);
+                    }
+                }
+
+                this.updateProgress(90);
+                return { newFramesLength: framesLength, data: this.concatArrayBuffers(outputChunks) };
+            }
+
+            async splicerAnimation(file1Data, file2Data, range1Str, range2Str) {
+                this.log('Starting SPLICER operation...', 'info');
+                this.updateProgress(10);
+
+                // Parse both files
+                const anim1 = this.parseAnimationData(file1Data, 'File 1');
+                const anim2 = this.parseAnimationData(file2Data, 'File 2');
+                
+                if (!anim1 || !anim2) {
+                    this.log('✗ Error: Could not parse one or both files', 'error');
+                    return null;
+                }
+
+                // Check bone structure compatibility
+                const boneSet1 = new Set(anim1.boneIds);
+                const boneSet2 = new Set(anim2.boneIds);
+                
+                if (boneSet1.size !== boneSet2.size || ![...boneSet1].every(bone => boneSet2.has(bone))) {
+                    this.log('✗ Error: Bone structures do not match', 'error');
+                    this.log(`File 1 bones: [${anim1.boneIds.join(', ')}]`, 'error');
+                    this.log(`File 2 bones: [${anim2.boneIds.join(', ')}]`, 'error');
+                    return null;
+                }
+
+                // Parse ranges
+                const [start1, end1] = range1Str.split('-').map(x => parseInt(x) - 1);
+                const [start2, end2] = range2Str.split('-').map(x => parseInt(x) - 1);
+
+                if (start1 < 0 || end1 >= anim1.framesLength || start1 > end1) {
+                    this.log(`✗ Error: Invalid range for File 1: ${range1Str}`, 'error');
+                    return null;
+                }
+                if (start2 < 0 || end2 >= anim2.framesLength || start2 > end2) {
+                    this.log(`✗ Error: Invalid range for File 2: ${range2Str}`, 'error');
+                    return null;
+                }
+
+                const boneCount = anim1.boneIds.length;
+                const frameSize = boneCount * 12;
+                const numFrames1 = end1 - start1 + 1;
+                const numFrames2 = end2 - start2 + 1;
+                const totalFrames = numFrames1 + numFrames2;
+
+                this.log(`Splicing ${numFrames1} frames from File 1 and ${numFrames2} frames from File 2`, 'info');
+                this.updateProgress(30);
+
+                // Extract frames from File 1
+                const frames1 = [];
+                for (let frame = start1; frame <= end1; frame++) {
+                    const offset = anim1.dataOffset + (frame * frameSize);
+                    frames1.push(anim1.dataView.buffer.slice(offset, offset + frameSize));
+                }
+
+                this.updateProgress(60);
+
+                // Extract frames from File 2 (handle bone order differences)
+                const frames2 = [];
+                const boneOrderDifferent = JSON.stringify(anim1.boneIds) !== JSON.stringify(anim2.boneIds);
+                
+                if (boneOrderDifferent) {
+                    this.log('Note: Bone orders differ, reordering File 2 data', 'warning');
+                    // Create mapping from file2 to file1 bone order
+                    const boneMapping = anim1.boneIds.map(boneId => anim2.boneIds.indexOf(boneId));
+                    
+                    for (let frame = start2; frame <= end2; frame++) {
+                        const frameBuffer = new ArrayBuffer(frameSize);
+                        const frameView = new DataView(frameBuffer);
+                        const sourceOffset = anim2.dataOffset + (frame * frameSize);
+
+                        for (let targetIdx = 0; targetIdx < boneCount; targetIdx++) {
+                            const sourceIdx = boneMapping[targetIdx];
+                            const sourceBoneOffset = sourceOffset + (sourceIdx * 12);
+                            const targetBoneOffset = targetIdx * 12;
+
+                            // Copy position and rotation data
+                            for (let i = 0; i < 12; i++) {
+                                frameView.setUint8(targetBoneOffset + i, anim2.dataView.getUint8(sourceBoneOffset + i));
+                            }
+                        }
+                        frames2.push(frameBuffer);
+                    }
+                } else {
+                    // Same bone order, direct copy
+                    for (let frame = start2; frame <= end2; frame++) {
+                        const offset = anim2.dataOffset + (frame * frameSize);
+                        frames2.push(anim2.dataView.buffer.slice(offset, offset + frameSize));
+                    }
+                }
+
+                this.updateProgress(90);
+
+                // Combine frames
+                const splicedData = this.concatArrayBuffers([...frames1, ...frames2]);
+
+                return {
+                    metadata: anim1,
+                    newFramesLength: totalFrames,
+                    data: splicedData,
+                    tag: `SPLICER_${numFrames1}_${numFrames2}`
+                };
+            }
+
+            // Extract CSV data
+            extractCSV(animationData) {
+                const { framesLength, boneIds, dataView, dataOffset } = animationData;
+                const csvRows = [['frame', 'bone_id', 'bone_name', 'pos_x', 'pos_y', 'pos_z']];
+
+                this.log('Extracting CSV data...', 'info');
+                this.updateProgress(10);
+
+                for (let frame = 0; frame < framesLength; frame++) {
+                    for (let boneIdx = 0; boneIdx < boneIds.length; boneIdx++) {
+                        const boneOffset = dataOffset + (frame * boneIds.length * 12) + (boneIdx * 12);
+                        const posX = this.readFloat16(dataView, boneOffset);
+                        const posY = this.readFloat16(dataView, boneOffset + 2);
+                        const posZ = this.readFloat16(dataView, boneOffset + 4);
+                        
+                        const boneId = boneIds[boneIdx];
+                        const boneName = BONE_MAP[boneId] || `Bone_${boneId}`;
+                        
+                        csvRows.push([
+                            frame + 1,
+                            boneId,
+                            boneName,
+                            posX.toFixed(6),
+                            posY.toFixed(6),
+                            posZ.toFixed(6)
+                        ]);
+                    }
+
+                    // Update progress
+                    if (frame % 10 === 0) {
+                        const progress = 10 + (frame / framesLength * 80);
+                        this.updateProgress(progress);
+                    }
+                }
+
+                this.updateProgress(100);
+                this.log(`✓ CSV extraction complete: ${csvRows.length - 1} data rows`, 'success');
+                return csvRows;
+            }
+
+            // Reconstruct binary file with new frame data
+            reconstructBinary(metadata, newFramesLength, frameData) {
+                const { dataView, dataOffset, garbageSize } = metadata;
+                const headerSize = dataOffset;
+                
+                // Create new buffer
+                const newBuffer = new ArrayBuffer(headerSize + frameData.byteLength);
+                const newView = new DataView(newBuffer);
+
+                // Copy original header
+                for (let i = 0; i < headerSize; i++) {
+                    newView.setUint8(i, dataView.getUint8(i));
+                }
+
+                // Update frame count in header (at position after garbage data)
+                const framesLengthPosition = 8 + 2 + (garbageSize * 8);
+                newView.setInt32(framesLengthPosition, newFramesLength, true);
+
+                // Copy new frame data
+                const frameBytes = new Uint8Array(frameData);
+                const newBytes = new Uint8Array(newBuffer);
+                newBytes.set(frameBytes, headerSize);
+
+                return newBuffer;
+            }
+
+            // Utility function to concatenate ArrayBuffers
+            concatArrayBuffers(buffers) {
+                const totalLength = buffers.reduce((sum, buffer) => sum + buffer.byteLength, 0);
+                const result = new Uint8Array(totalLength);
+                let offset = 0;
+                
+                for (const buffer of buffers) {
+                    result.set(new Uint8Array(buffer), offset);
+                    offset += buffer.byteLength;
+                }
+                
+                return result.buffer;
+            }
+
+            // Download file
             downloadFile(data, filename, contentType) {
                 try {
                     const blob = new Blob([data], { type: contentType });
@@ -739,6 +1277,7 @@
                 this.processor = new AnimationProcessor();
                 this.currentFile = null;
                 this.currentAnimationData = null;
+                this.splicerFiles = { file1: null, file2: null };
                 this.initEventListeners();
                 this.updateParametersUI();
             }
@@ -780,6 +1319,15 @@
                 document.getElementById('deselectAllBones').addEventListener('click', () => {
                     this.toggleAllBones(false);
                 });
+
+                // Splicer file inputs
+                document.getElementById('splicerFile1').addEventListener('change', (e) => {
+                    this.handleSplicerFileSelect(e, 'file1');
+                });
+
+                document.getElementById('splicerFile2').addEventListener('change', (e) => {
+                    this.handleSplicerFileSelect(e, 'file2');
+                });
             }
 
             async handleFileSelect(event) {
@@ -795,12 +1343,36 @@
                         if (this.currentAnimationData) {
                             this.displayFileInfo(file, this.currentAnimationData);
                             document.getElementById('runButton').disabled = false;
+                            this.updateBoneList();
                         } else {
                             document.getElementById('runButton').disabled = true;
                         }
                     } catch (error) {
                         this.processor.log(`✗ Error reading file: ${error}`, 'error');
                         document.getElementById('runButton').disabled = true;
+                    }
+                }
+            }
+
+            async handleSplicerFileSelect(event, fileKey) {
+                const file = event.target.files[0];
+                if (file) {
+                    try {
+                        const arrayBuffer = await file.arrayBuffer();
+                        const animationData = this.processor.parseAnimationData(arrayBuffer, file.name);
+                        
+                        if (animationData) {
+                            this.splicerFiles[fileKey] = { file, animationData };
+                            const infoElement = document.getElementById(`splicerFile${fileKey.replace('file', '')}Info`);
+                            infoElement.textContent = `${animationData.framesLength} frames, ${animationData.boneIdsLength} bones`;
+                            
+                            // Enable run button if both files are loaded
+                            if (this.splicerFiles.file1 && this.splicerFiles.file2) {
+                                document.getElementById('runButton').disabled = false;
+                            }
+                        }
+                    } catch (error) {
+                        this.processor.log(`✗ Error reading splicer file ${fileKey}: ${error}`, 'error');
                     }
                 }
             }
@@ -822,12 +1394,32 @@
             updateParametersUI() {
                 const operation = document.getElementById('operationSelect').value;
                 const container = document.getElementById('paramsContainer');
+                const splicerSection = document.getElementById('splicerSection');
+                const boneSection = document.getElementById('boneSelectionSection');
+
                 container.innerHTML = '';
+                splicerSection.style.display = 'none';
+                boneSection.style.display = 'none';
 
                 switch (operation) {
                     case 'SHORTEN':
                     case 'LENGTHEN':
                         this.createParamRow(container, 'factor', 'Factor:', '2.0');
+                        break;
+                    case 'DASH':
+                        this.createDashUI(container);
+                        break;
+                    case 'BIRTH_LOCATION':
+                        this.createParamRow(container, 'total_offset', 'Total X Offset:', '200.0');
+                        this.createDropdownRow(container, 'direction', 'Direction:', ['Towards', 'Away']);
+                        break;
+                    case 'SPLICER':
+                        splicerSection.style.display = 'block';
+                        document.getElementById('runButton').disabled = !(this.splicerFiles.file1 && this.splicerFiles.file2);
+                        break;
+                    case 'TRIMMER':
+                        const frameCount = this.currentAnimationData ? this.currentAnimationData.framesLength : '?';
+                        this.createParamRow(container, 'range', `Remove frames (1-${frameCount}):`, '1-10');
                         break;
                     case 'AXIS_ADDER':
                         this.createParamRow(container, 'x_offset', 'X Offset:', '0.0');
@@ -835,9 +1427,50 @@
                         this.createParamRow(container, 'z_offset', 'Z Offset:', '0.0');
                         this.createParamRow(container, 'bone_id', 'Bone ID (-1 for all):', '-1');
                         break;
-                    case 'TRIMMER':
-                        this.createParamRow(container, 'range', 'Remove frames (e.g., 1-10):', '1-10');
+                    case 'AXIS_SCALER':
+                        this.createParamRow(container, 'scale_factor', 'Scale Factor:', '1.5');
+                        boneSection.style.display = 'block';
                         break;
+                }
+            }
+
+            createDashUI(container) {
+                // Dash type selection
+                const typeRow = document.createElement('div');
+                typeRow.className = 'param-row';
+                typeRow.innerHTML = `
+                    <label>Dash Type:</label>
+                    <select id="param_dash_type">
+                        <option value="Towards">Towards</option>
+                        <option value="Away">Away</option>
+                        <option value="Split Dash">Split Dash</option>
+                    </select>
+                `;
+                container.appendChild(typeRow);
+
+                // Dash parameters (will be updated based on type)
+                this.dashParamsContainer = document.createElement('div');
+                container.appendChild(this.dashParamsContainer);
+
+                // Event listener for dash type changes
+                document.getElementById('param_dash_type').addEventListener('change', () => {
+                    this.updateDashParamsUI();
+                });
+
+                this.updateDashParamsUI();
+            }
+
+            updateDashParamsUI() {
+                const dashType = document.getElementById('param_dash_type').value;
+                this.dashParamsContainer.innerHTML = '';
+
+                if (dashType === 'Split Dash') {
+                    this.createParamRow(this.dashParamsContainer, 'order', 'First Dash:', 'Towards');
+                    this.createParamRow(this.dashParamsContainer, 'phase1_frames', 'Phase 1 Frames:', '30');
+                    this.createParamRow(this.dashParamsContainer, 'p1_offset', 'Phase 1 Offset:', '10.0');
+                    this.createParamRow(this.dashParamsContainer, 'p2_offset', 'Phase 2 Offset:', '5.0');
+                } else {
+                    this.createParamRow(this.dashParamsContainer, 'offset_factor', 'Offset Factor:', '10.0');
                 }
             }
 
@@ -859,20 +1492,116 @@
                 container.appendChild(row);
             }
 
+            createDropdownRow(container, id, label, options) {
+                const row = document.createElement('div');
+                row.className = 'param-row';
+                
+                const labelEl = document.createElement('label');
+                labelEl.textContent = label;
+                
+                const select = document.createElement('select');
+                select.id = `param_${id}`;
+                options.forEach(option => {
+                    const optionEl = document.createElement('option');
+                    optionEl.value = option;
+                    optionEl.textContent = option;
+                    select.appendChild(optionEl);
+                });
+                
+                row.appendChild(labelEl);
+                row.appendChild(select);
+                container.appendChild(row);
+            }
+
+            updateBoneList() {
+                if (!this.currentAnimationData) return;
+
+                const boneList = document.getElementById('boneList');
+                boneList.innerHTML = '';
+                
+                this.currentAnimationData.boneIds.forEach(boneId => {
+                    const boneItem = document.createElement('div');
+                    boneItem.className = 'bone-item';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = boneId;
+                    checkbox.checked = true;
+                    checkbox.id = `bone_${boneId}`;
+                    
+                    const label = document.createElement('label');
+                    label.htmlFor = `bone_${boneId}`;
+                    label.textContent = `${boneId}: ${BONE_MAP[boneId] || 'Unknown'}`;
+                    label.style.marginLeft = '8px';
+                    
+                    boneItem.appendChild(checkbox);
+                    boneItem.appendChild(label);
+                    boneList.appendChild(boneItem);
+                });
+            }
+
+            toggleAllBones(select) {
+                const checkboxes = document.querySelectorAll('#boneList input[type="checkbox"]');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = select;
+                });
+            }
+
+            getSelectedBones() {
+                const checkboxes = document.querySelectorAll('#boneList input[type="checkbox"]:checked');
+                return Array.from(checkboxes).map(cb => parseInt(cb.value));
+            }
+
             getOperationParams() {
                 const operation = document.getElementById('operationSelect').value;
                 const params = { operation };
                 
-                const paramInputs = document.querySelectorAll('#paramsContainer input');
+                // Get dynamic parameters
+                const paramInputs = document.querySelectorAll('#paramsContainer input, #paramsContainer select');
                 paramInputs.forEach(input => {
                     const paramName = input.id.replace('param_', '');
                     params[paramName] = input.value;
                 });
 
+                // Get splicer parameters if applicable
+                if (operation === 'SPLICER') {
+                    params.range1 = document.getElementById('splicerRange1').value;
+                    params.range2 = document.getElementById('splicerRange2').value;
+                }
+
                 return params;
             }
 
+            getDecimationParams(floatFactor) {
+                if (floatFactor < 1.0) {
+                    this.processor.log('Warning: Factor must be 1.0 or greater. Using 1.0.', 'warning');
+                    floatFactor = 1.0;
+                }
+                
+                const inverseRatio = 1.0 / floatFactor;
+                const numeratorInv = Math.round(inverseRatio * 10);
+                const denominatorInv = 10;
+
+                const commonInv = this.gcd(numeratorInv, denominatorInv);
+                const factorD = numeratorInv / commonInv;
+                const factorN = denominatorInv / commonInv;
+
+                this.processor.log(`Decimation ratio: ${floatFactor} -> Keep ${factorD} frames out of every ${factorN}`, 'info');
+                return { factorN, factorD };
+            }
+
+            gcd(a, b) {
+                return b === 0 ? a : this.gcd(b, a % b);
+            }
+
             async runOperation() {
+                const operation = document.getElementById('operationSelect').value;
+                
+                if (operation === 'SPLICER') {
+                    await this.runSplicerOperation();
+                    return;
+                }
+
                 if (!this.currentFile || !this.currentAnimationData) {
                     this.processor.log('✗ Error: Please select a valid animation file first.', 'error');
                     return;
@@ -880,38 +1609,156 @@
 
                 this.processor.clearLog();
                 this.processor.log('🚀 Starting operation...', 'info');
+                this.processor.updateProgress(5);
+
+                try {
+                    const params = this.getOperationParams();
+                    const exportExt = document.getElementById('exportExt').value;
+                    const saveCSV = document.getElementById('saveCSV').checked;
+
+                    let result;
+                    let outputTag;
+
+                    switch (params.operation) {
+                        case 'SHORTEN': {
+                            const factor = parseFloat(params.factor);
+                            const { factorN, factorD } = this.getDecimationParams(factor);
+                            result = this.processor.shortenAnimation(this.currentAnimationData, factorN, factorD);
+                            outputTag = `SHORTEN_x${factor.toFixed(1).replace('.', '_')}`;
+                            break;
+                        }
+                        case 'LENGTHEN': {
+                            const factor = parseInt(params.factor);
+                            result = this.processor.lengthenAnimation(this.currentAnimationData, factor);
+                            outputTag = `LENGTHEN_x${factor}`;
+                            break;
+                        }
+                        case 'X_DOUBLE':
+                            result = this.processor.xDoubleAnimation(this.currentAnimationData);
+                            outputTag = 'X_DOUBLE';
+                            break;
+                        case 'DASH': {
+                            const offsetFactor = parseFloat(params.offset_factor);
+                            const directionSign = params.dash_type === 'Towards' ? 1 : -1;
+                            result = this.processor.dashAnimation(this.currentAnimationData, offsetFactor, directionSign);
+                            const directionChar = directionSign > 0 ? 'P' : 'N';
+                            outputTag = `DASH_${directionChar}_x${offsetFactor.toFixed(1).replace('.', '_')}`;
+                            break;
+                        }
+                        case 'BIRTH_LOCATION': {
+                            const totalOffset = parseFloat(params.total_offset);
+                            const directionSign = params.direction === 'Towards' ? 1 : -1;
+                            result = this.processor.birthLocationAnimation(this.currentAnimationData, totalOffset, directionSign);
+                            const directionChar = directionSign > 0 ? 'P' : 'N';
+                            outputTag = `BIRTH_LOC_${directionChar}_x${totalOffset.toFixed(1).replace('.', '_')}`;
+                            break;
+                        }
+                        case 'TRIMMER': {
+                            const [start, end] = params.range.split('-').map(x => parseInt(x) - 1);
+                            result = this.processor.trimmerAnimation(this.currentAnimationData, start, end);
+                            outputTag = 'TRIMMER';
+                            break;
+                        }
+                        case 'AXIS_ADDER': {
+                            const xOffset = parseFloat(params.x_offset);
+                            const yOffset = parseFloat(params.y_offset);
+                            const zOffset = parseFloat(params.z_offset);
+                            const boneId = parseInt(params.bone_id);
+                            result = this.processor.axisAdderAnimation(this.currentAnimationData, xOffset, yOffset, zOffset, boneId);
+                            outputTag = 'AXIS_ADDER';
+                            break;
+                        }
+                        case 'AXIS_SCALER': {
+                            const scaleFactor = parseFloat(params.scale_factor);
+                            const targetBoneIds = this.getSelectedBones();
+                            result = this.processor.axisScalerAnimation(this.currentAnimationData, scaleFactor, targetBoneIds);
+                            const boneCountStr = targetBoneIds.length > 0 ? `${targetBoneIds.length}bones` : 'allbones';
+                            outputTag = `AXIS_SCALER_x${scaleFactor.toFixed(1).replace('.', '_')}_${boneCountStr}`;
+                            break;
+                        }
+                        case 'EXTRACT_CSV': {
+                            const csvData = this.processor.extractCSV(this.currentAnimationData);
+                            const csvContent = csvData.map(row => row.join(',')).join('\n');
+                            const outputFilename = `${this.currentFile.name.replace(/\.[^/.]+$/, "")}_extracted.csv`;
+                            this.processor.downloadFile(csvContent, outputFilename, 'text/csv');
+                            this.processor.updateProgress(0);
+                            return;
+                        }
+                        default:
+                            this.processor.log(`✗ Operation "${params.operation}" not implemented`, 'error');
+                            this.processor.updateProgress(0);
+                            return;
+                    }
+
+                    this.processor.updateProgress(95);
+
+                    if (result) {
+                        // Reconstruct binary file
+                        const finalBinary = this.processor.reconstructBinary(
+                            this.currentAnimationData, 
+                            result.newFramesLength, 
+                            result.data
+                        );
+
+                        // Download result
+                        const outputFilename = `${this.currentFile.name.replace(/\.[^/.]+$/, "")}_${outputTag}${exportExt}`;
+                        this.processor.downloadFile(finalBinary, outputFilename, 'application/octet-stream');
+
+                        // Extract CSV if requested
+                        if (saveCSV && params.operation !== 'EXTRACT_CSV') {
+                            const csvData = this.processor.extractCSV(this.currentAnimationData);
+                            const csvContent = csvData.map(row => row.join(',')).join('\n');
+                            const csvFilename = `${this.currentFile.name.replace(/\.[^/.]+$/, "")}_${outputTag}.csv`;
+                            this.processor.downloadFile(csvContent, csvFilename, 'text/csv');
+                        }
+                    }
+
+                    this.processor.updateProgress(100);
+                    this.processor.log('✅ Operation completed successfully!', 'success');
+
+                } catch (error) {
+                    this.processor.log(`✗ Operation failed: ${error}`, 'error');
+                    this.processor.updateProgress(0);
+                }
+            }
+
+            async runSplicerOperation() {
+                if (!this.splicerFiles.file1 || !this.splicerFiles.file2) {
+                    this.processor.log('✗ Error: Please select both files for SPLICER operation', 'error');
+                    return;
+                }
+
+                this.processor.clearLog();
+                this.processor.log('🚀 Starting SPLICER operation...', 'info');
 
                 try {
                     const params = this.getOperationParams();
                     const exportExt = document.getElementById('exportExt').value;
 
-                    let result;
-                    let outputFilename;
+                    const result = await this.processor.splicerAnimation(
+                        this.splicerFiles.file1.animationData.arrayBuffer,
+                        this.splicerFiles.file2.animationData.arrayBuffer,
+                        params.range1,
+                        params.range2
+                    );
 
-                    switch (params.operation) {
-                        case 'EXTRACT_CSV':
-                            const csvData = this.processor.extractCSV(this.currentAnimationData);
-                            const csvContent = csvData.map(row => row.join(',')).join('\n');
-                            outputFilename = `${this.currentFile.name.replace(/\.[^/.]+$/, "")}_extracted.csv`;
-                            this.processor.downloadFile(csvContent, outputFilename, 'text/csv');
-                            break;
+                    if (result) {
+                        const finalBinary = this.processor.reconstructBinary(
+                            result.metadata,
+                            result.newFramesLength,
+                            result.data
+                        );
 
-                        case 'X_DOUBLE':
-                            const modifiedBuffer = this.processor.doubleX(this.currentAnimationData);
-                            outputFilename = `${this.currentFile.name.replace(/\.[^/.]+$/, "")}_x_doubled${exportExt}`;
-                            this.processor.downloadFile(modifiedBuffer, outputFilename, 'application/octet-stream');
-                            break;
+                        const outputFilename = `${this.splicerFiles.file1.file.name.replace(/\.[^/.]+$/, "")}_${result.tag}${exportExt}`;
+                        this.processor.downloadFile(finalBinary, outputFilename, 'application/octet-stream');
 
-                        default:
-                            this.processor.log(`⚠️ Operation "${params.operation}" not fully implemented in this demo`, 'warning');
-                            this.processor.log('Only EXTRACT_CSV and X_DOUBLE are currently available', 'info');
-                            break;
+                        this.processor.log('✅ SPLICER operation completed successfully!', 'success');
                     }
 
                     this.processor.updateProgress(0);
 
                 } catch (error) {
-                    this.processor.log(`✗ Operation failed: ${error}`, 'error');
+                    this.processor.log(`✗ SPLICER operation failed: ${error}`, 'error');
                     this.processor.updateProgress(0);
                 }
             }
@@ -936,13 +1783,6 @@
                 if (savedExportExt) {
                     document.getElementById('exportExt').value = savedExportExt;
                 }
-            }
-
-            toggleAllBones(select) {
-                const checkboxes = document.querySelectorAll('#boneList input[type="checkbox"]');
-                checkboxes.forEach(checkbox => {
-                    checkbox.checked = select;
-                });
             }
         }
 
