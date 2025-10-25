@@ -1,4 +1,4 @@
-// main.js - FIXED PYTHON CALL
+// main.js - WITH PYTHON ERROR HANDLING
 let pyodide = null;
 let currentBoneCheckboxes = new Map();
 
@@ -381,14 +381,32 @@ web_logger("Python environment ready")
             }
 
             this.log("=== Calling Python function ===");
-            
+
             // Convert CLI args to Python object properly
             const pyArgs = pyodide.toPy(cliArgs);
-            
-            // Call the function directly instead of using runPython
-            const result = await pyodide.globals.get('run_web_operation')(pyArgs);
-            
-            this.log(`Operation result: ${result}`);
+
+            // Call the function and catch any Python errors
+            try {
+                const result = await pyodide.globals.get('run_web_operation')(pyArgs);
+                this.log(`Operation result: ${result}`);
+            } catch (error) {
+                this.log(`Python execution error: ${error}`);
+                // Try to get Python error details
+                try {
+                    const pythonError = await pyodide.runPython(`
+import sys
+if hasattr(sys, 'last_value'):
+    error_msg = f"Python error: {sys.last_value}"
+    print(error_msg)
+    error_msg
+else:
+    "No Python error details available"
+`);
+                    this.log(`Python error details: ${pythonError}`);
+                } catch (e) {
+                    this.log(`Could not get Python error details: ${e}`);
+                }
+            }
             
             // Check for output files in VFS and download them
             await this.downloadOutputFiles();
